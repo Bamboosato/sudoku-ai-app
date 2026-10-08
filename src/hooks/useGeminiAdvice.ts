@@ -10,7 +10,7 @@ export type GeminiAdviceState =
   | { status: 'error'; level: HintLevel; message: string }
 
 /** On-demand Gemini advice for the current game. Resets automatically on a new game. */
-export function useGeminiAdvice(game: GameState) {
+export function useGeminiAdvice(game: GameState, apiKey?: string) {
   const [advice, setAdvice] = useState<GeminiAdviceState>({ status: 'idle' })
   const abortRef = useRef<AbortController | null>(null)
   const gameRef = useRef(game)
@@ -39,7 +39,7 @@ export function useGeminiAdvice(game: GameState) {
           notes: g.notes.map((row) => row.map((set) => [...set])),
           mistakes: g.mistakes,
         },
-        controller.signal,
+        { apiKey, signal: controller.signal },
       )
       if (controller.signal.aborted) return
       setAdvice({ status: 'success', level, advice: res.advice })

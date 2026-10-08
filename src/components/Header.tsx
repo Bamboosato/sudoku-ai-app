@@ -2,10 +2,19 @@ interface HeaderProps {
   time: string
   mistakes: number
   maxMistakes: number
+  hasCustomApiKey: boolean
   onToggleTheme: () => void
+  onOpenSettings: () => void
 }
 
-export default function Header({ time, mistakes, maxMistakes, onToggleTheme }: HeaderProps) {
+export default function Header({
+  time,
+  mistakes,
+  maxMistakes,
+  hasCustomApiKey,
+  onToggleTheme,
+  onOpenSettings,
+}: HeaderProps) {
   return (
     <header className="w-full max-w-4xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80">
       <div className="flex items-center gap-3">
@@ -33,10 +42,23 @@ export default function Header({ time, mistakes, maxMistakes, onToggleTheme }: H
 
         <button
           onClick={onToggleTheme}
+          aria-label="テーマ切替"
           className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
         >
           <i className="fa-solid fa-moon dark:hidden"></i>
           <i className="fa-solid fa-sun hidden dark:inline"></i>
+        </button>
+
+        <button
+          onClick={onOpenSettings}
+          aria-label="Gemini API 設定"
+          title={hasCustomApiKey ? 'Gemini API キー設定済み' : 'Gemini API 設定（各自のキーを入力）'}
+          className="relative w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+        >
+          <i className="fa-solid fa-gear text-sm"></i>
+          {hasCustomApiKey && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+          )}
         </button>
       </div>
     </header>

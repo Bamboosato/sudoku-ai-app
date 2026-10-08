@@ -18,7 +18,7 @@ const CLIENT_TIMEOUT_MS = 30000
  */
 export async function requestGeminiHint(
   payload: GeminiHintRequest,
-  signal?: AbortSignal,
+  options?: { apiKey?: string; signal?: AbortSignal },
 ): Promise<GeminiHintResponse> {
   const controller = new AbortController()
   let timedOut = false
@@ -27,14 +27,21 @@ export async function requestGeminiHint(
     controller.abort()
   }, CLIENT_TIMEOUT_MS)
   const onAbort = () => controller.abort()
-  signal?.addEventListener('abort', onAbort)
+  options?.signal?.addEventListener('abort', onAbort)
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (options?.apiKey) {
+    headers['x-gemini-api-key'] = options.apiKey
+  }
 
   try {
     let res: Response
     try {
       res = await fetch('/api/hint', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
         signal: controller.signal,
       })
@@ -63,6 +70,6 @@ export async function requestGeminiHint(
     return data
   } finally {
     clearTimeout(timer)
-    signal?.removeEventListener('abort', onAbort)
+    options?.signal?.removeEventListener('abort', onAbort)
   }
 }

@@ -48,9 +48,13 @@ export function geminiHintPlugin(): Plugin {
       return sendJson(res, 405, { error: { code: 'INVALID_REQUEST', message: 'POST メソッドのみ対応しています。' } })
     }
     try {
+      const clientApiKey = req.headers['x-gemini-api-key']
+      const effectiveApiKey =
+        (typeof clientApiKey === 'string' && clientApiKey.trim()) || env.GEMINI_API_KEY
+
       const request = parseHintRequest(await readJson(req))
       const result = await generateGeminiHint(request, {
-        apiKey: env.GEMINI_API_KEY,
+        apiKey: effectiveApiKey,
         model: env.GEMINI_MODEL,
       })
       sendJson(res, 200, result)

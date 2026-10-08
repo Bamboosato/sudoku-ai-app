@@ -51,9 +51,11 @@ cd sudoku-ai-app
 npm install
 ```
 
-### 2. 環境変数の設定
+### 2. 環境変数の設定（任意）
 
-ルートディレクトリに `.env` ファイルを作成し、Google AI Studio で取得した Gemini API キーを設定します。
+利用者がブラウザ上の設定画面（⚙️アイコン）から**各自の Gemini API キーを入力して利用（BYOK: Bring Your Own Key）**できるため、環境変数の設定は**必須ではありません**。
+
+ローカル開発やデプロイ先で全員共通のデフォルトキーを設定したい場合のみ、ルートディレクトリに `.env` ファイルを作成してください。
 
 ```bash
 cp .env.example .env
@@ -64,7 +66,9 @@ cp .env.example .env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-> **Note**: Gemini API キーが未設定でも、ローカルルールベースのヒント機能（Naked/Hidden Single解析）や数独ゲーム本体はそのままプレイ可能です。
+> **Note**:
+> - API キーが未設定でも、数独ゲーム本体およびローカルルールベース解析（Naked/Hidden Single）は完全無料・制限なしで動作します。
+> - Vercel にデプロイする際も、環境変数の設定なしでそのままデプロイして各ユーザーの API キーで使用可能です。
 
 ### 3. 開発サーバーの起動
 
