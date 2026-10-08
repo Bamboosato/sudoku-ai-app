@@ -49,7 +49,7 @@ export default function Cell({
   return (
     <div
       onClick={() => onSelect(row, col)}
-      className={`relative w-full h-full aspect-square min-w-0 min-h-0 overflow-hidden flex items-center justify-center text-lg sm:text-2xl cursor-pointer select-none transition-all duration-100 ${borders} ${bg} ${text}`}
+      className={`relative w-full h-full aspect-square min-w-0 min-h-0 overflow-hidden flex items-center justify-center text-lg sm:text-2xl cursor-pointer select-none touch-manipulation transition-all duration-100 ${borders} ${bg} ${text}`}
     >
       {value !== 0 ? (
         <span className="leading-none select-none">{value}</span>

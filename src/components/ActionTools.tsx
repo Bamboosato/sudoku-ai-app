@@ -7,8 +7,8 @@ interface ActionToolsProps {
 }
 
 const toolBase =
-  'touch-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition'
-const labelCls = 'text-[11px] font-medium text-slate-500 dark:text-slate-400'
+  'touch-btn min-h-[44px] flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 border border-slate-200 dark:border-slate-700 shadow-sm touch-manipulation transition select-none'
+const labelCls = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none'
 
 export default function ActionTools({ noteMode, onUndo, onErase, onToggleNote, onCheck }: ActionToolsProps) {
   return (
