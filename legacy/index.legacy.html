@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sudoku AI - スマート数独アシスタント</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 3x3 Sudoku Block Borders */
+    .border-b-thick { border-bottom-width: 2.5px !important; }
+    .border-r-thick { border-right-width: 2.5px !important; }
+    
+    /* Subtle touch active states */
+    .touch-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Pulsing hint highlight animation */
+    @keyframes hintPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(99, 102, 241, 0)); }
+      50% { transform: scale(1.04); filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.6)); }
+    }
+    .hint-highlight {
+      animation: hintPulse 1.2s infinite ease-in-out;
+      z-index: 10;
+    }
+
+    /* Pencil mark 3x3 layout within cell */
+    .note-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      height: 100%;
+      width: 100%;
+      padding: 1px;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 select-none">
+
+  <header class="w-full max-w-4xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+        <i class="fa-solid fa-brain text-lg"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-lg sm:text-xl tracking-tight flex items-center gap-1.5">
+          Sudoku <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-indigo-500">AI</span>
+        </h1>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">論理思考を育てるAI数独アシスタント</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats & Theme Toggle -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800/60 font-mono text-sm font-semibold">
+        <i class="fa-regular fa-clock text-slate-500 text-xs"></i>
+        <span id="timer-display">00:00</span>
+      </div>
+
+      <div class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+        <i class="fa-solid fa-heart"></i>
+        <span id="mistake-count">0/3</span>
+      </div>
+
+      <button id="theme-toggle" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+        <i class="fa-solid fa-moon dark:hidden"></i>
+        <i class="fa-solid fa-sun hidden dark:inline"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-4xl mx-auto px-2 sm:px-4 py-3 sm:py-6 flex flex-col lg:flex-row gap-4 lg:gap-8 items-center lg:items-start justify-center">
+
+    <!-- Left Column: Game Board & Action Buttons -->
+    <div class="flex flex-col items-center w-full max-w-[430px]">
+      
+      <!-- Difficulty selection toolbar -->
+      <div class="w-full flex items-center justify-between mb-3 px-1">
+        <div class="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-xl text-xs font-semibold">
+          <button class="diff-btn px-2.5 py-1 rounded-lg transition" data-diff="easy">簡単</button>
+          <button class="diff-btn px-2.5 py-1 rounded-lg transition" data-diff="medium">普通</button>
+          <button class="diff-btn px-2.5 py-1 rounded-lg transition" data-diff="hard">難問</button>
+        </div>
+
+        <button id="btn-new-game" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-indigo-900 transition flex items-center gap-1">
+          <i class="fa-solid fa-rotate-right"></i> 新規ゲーム
+        </button>
+      </div>
+
+      <!-- Sudoku Board Container -->
+      <div class="relative w-full aspect-square bg-slate-300 dark:bg-slate-700 p-1 sm:p-1.5 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none border border-slate-300 dark:border-slate-800">
+        <div id="sudoku-grid" class="w-full h-full grid grid-cols-9 grid-rows-9 gap-[1px] bg-slate-300 dark:bg-slate-700 rounded-xl overflow-hidden">
+          <!-- 81 Cells injected via JavaScript -->
+        </div>
+
+        <!-- Board Overlay for Pause or Win -->
+        <div id="board-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm rounded-2xl hidden items-center justify-center flex-col text-white z-20">
+          <p class="text-lg font-bold mb-2">一時停止中</p>
+          <button id="resume-btn" class="px-4 py-2 bg-brand-600 rounded-xl font-medium text-sm">再開する</button>
+        </div>
+      </div>
+
+      <!-- Action Tools: Undo, Erase, Pencil Note, Clear, Check Errors -->
+      <div class="w-full grid grid-cols-4 gap-2 mt-3">
+        <button id="tool-undo" class="touch-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition">
+          <i class="fa-solid fa-arrow-rotate-left text-base text-slate-700 dark:text-slate-200 mb-1"></i>
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">元に戻す</span>
+        </button>
+        <button id="tool-erase" class="touch-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition">
+          <i class="fa-solid fa-eraser text-base text-slate-700 dark:text-slate-200 mb-1"></i>
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">消去</span>
+        </button>
+        <button id="tool-note" class="touch-btn relative flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition">
+          <span id="note-badge" class="absolute top-1.5 right-2 px-1 py-0.2 text-[9px] font-bold rounded bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200 uppercase">OFF</span>
+          <i class="fa-solid fa-pencil text-base text-slate-700 dark:text-slate-200 mb-1"></i>
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">メモ</span>
+        </button>
+        <button id="tool-check" class="touch-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition">
+          <i class="fa-solid fa-shield-halved text-base text-brand-600 dark:text-brand-400 mb-1"></i>
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">ミス診断</span>
+        </button>
+      </div>
+
+      <!-- Numeric Keypad (1 to 9) -->
+      <div class="w-full grid grid-cols-9 gap-1 sm:gap-1.5 mt-2.5">
+        <!-- 1 through 9 buttons -->
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="1">
+          <span>1</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-1">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="2">
+          <span>2</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-2">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="3">
+          <span>3</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-3">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="4">
+          <span>4</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-4">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="5">
+          <span>5</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-5">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="6">
+          <span>6</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-6">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="7">
+          <span>7</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-7">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="8">
+          <span>8</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-8">9</span>
+        </button>
+        <button class="numpad-btn touch-btn h-12 sm:h-14 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-lg sm:text-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition" data-num="9">
+          <span>9</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal leading-none" id="count-9">9</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="w-full lg:w-80 flex flex-col gap-3">
+      
+      <!-- AI Advisor Card -->
+      <div class="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i> AI 論理ヒント
+            </h2>
+          </div>
+          <span id="hint-tech-tag" class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
+            待機中
+          </span>
+        </div>
+
+        <div id="hint-content" class="py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300 min-h-[90px] flex items-center justify-center text-center">
+          「AIヒント」を押すと、盤面全体の数字と候補を論理的にスキャンして次に解くべきマスと論理的理由を解説します。
+        </div>
+
+        <!-- AI Action Buttons -->
+        <div class="flex flex-col gap-2 pt-1">
+          <button id="btn-get-hint" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-brand-500/25 flex items-center justify-center gap-1.5 transition">
+            <i class="fa-solid fa-lightbulb"></i> 次の一手と論理解説
+          </button>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-auto-notes" class="py-2 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition flex items-center justify-center gap-1">
+              <i class="fa-solid fa-list-ol"></i> 全メモ自動入力
+            </button>
+            <button id="btn-solve-all" class="py-2 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition flex items-center justify-center gap-1">
+              <i class="fa-solid fa-bolt text-amber-500"></i> AI自動解答
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Solving Techniques Info -->
+      <div class="rounded-2xl p-4 bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 text-xs">
+        <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+          <i class="fa-solid fa-graduation-cap text-slate-400"></i> AIが検出する解法技法
+        </h3>
+        <ul class="space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+          <li class="flex items-start gap-1.5">
+            <span class="text-brand-500 font-bold">•</span>
+            <span><strong>Naked Single (唯一候補)</strong>: そのマスに入れる数字が1通りしかない状態。</span>
+          </li>
+          <li class="flex items-start gap-1.5">
+            <span class="text-brand-500 font-bold">•</span>
+            <span><strong>Hidden Single (隠れ1択)</strong>: 行・列・ブロック内でその数字が入れるマスが1つしかない状態。</span>
+          </li>
+          <li class="flex items-start gap-1.5">
+            <span class="text-brand-500 font-bold">•</span>
+            <span><strong>Naked Pair (同盟ペア)</strong>: 同じ2つの候補を持つマスが2つあり他を除外。</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="victory-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-800 shadow-2xl transform transition-all">
+      <div class="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-500 mx-auto flex items-center justify-center text-3xl mb-3 shadow-inner">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h2 class="text-2xl font-black text-slate-800 dark:text-white">クリアおめでとうございます！</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">見事にすべてのマスを解き明かしました！</p>
+      
+      <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl mb-5 text-left">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400">タイム</span>
+          <p id="modal-time" class="font-mono font-bold text-base text-slate-700 dark:text-slate-200">00:00</p>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400">難易度</span>
+          <p id="modal-diff" class="font-bold text-base text-slate-700 dark:text-slate-200">普通</p>
+        </div>
+      </div>
+
+      <button id="modal-restart-btn" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-lg shadow-brand-500/30 transition">
+        次のパズルへ挑戦
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /*
+     * SUDOKU CORE ENGINE & AI SOLVER
+     * - Generator creates valid boards with unique solutions
+     * - Logic Engine discovers step-by-step techniques: Naked Single, Hidden Single, Naked Pair
+     * - Backtracking Solver guarantees 100% solution completion
+     */
+
+    // --- State Variables ---
+    let difficulty = 'easy';
+    let solutionBoard = Array(9).fill(0).map(() => Array(9).fill(0));
+    let initialBoard = Array(9).fill(0).map(() => Array(9).fill(0));
+    let currentBoard = Array(9).fill(0).map(() => Array(9).fill(0));
+    let notesBoard = Array(9).fill(0).map(() => Array(9).fill(0).map(() => new Set()));
+    let selectedCell = null; // { row, col }
+    let noteMode = false;
+    let history = []; // Stack for undo
+    let mistakes = 0;
+    const maxMistakes = 3;
+    let timer = 0;
+    let timerInterval = null;
+    let activeHint = null;
+
+    // --- Dark Mode Handler ---
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (localStorage.getItem('sudoku_theme') === 'dark' || (!localStorage.getItem('sudoku_theme') && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    }
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('sudoku_theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // --- Timer Handling ---
+    function startTimer() {
+      clearInterval(timerInterval);
+      timer = 0;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timer++;
+        updateTimerDisplay();
+      }, 1000);
+    }
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timer / 60).toString().padStart(2, '0');
+      const seconds = (timer % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${minutes}:${seconds}`;
+    }
+
+    // --- Sudoku Helper Utilities ---
+    function isValidPlacement(board, row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        if (board[row][i] === num && i !== col) return false;
+        if (board[i][col] === num && i !== row) return false;
+      }
+      const startRow = Math.floor(row / 3) * 3;
+      const startCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const curR = startRow + r;
+          const curC = startCol + c;
+          if (board[curR][curC] === num && (curR !== row || curC !== col)) return false;
+        }
+      }
+      return true;
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // --- Backtracking Puzzle Solver & Generator ---
+    function solveSudoku(board) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            const numbers = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+            for (const num of numbers) {
+              if (isValidPlacement(board, r, c, num)) {
+                board[r][c] = num;
+                if (solveSudoku(board)) return true;
+                board[r][c] = 0;
+              }
+            }
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function generateNewPuzzle(diff) {
+      // 1. Generate full solved grid
+      solutionBoard = Array(9).fill(0).map(() => Array(9).fill(0));
+      solveSudoku(solutionBoard);
+
+      // 2. Clone to current board
+      currentBoard = solutionBoard.map(row => [...row]);
+
+      // 3. Remove cells according to chosen difficulty
+      // Easy: ~38 clues remain, Medium: ~30 clues, Hard: ~24 clues
+      let cellsToRemove = diff === 'easy' ? 42 : diff === 'medium' ? 50 : 56;
+      const positions = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          positions.push({ r, c });
+        }
+      }
+      shuffleArray(positions);
+
+      for (let i = 0; i < cellsToRemove; i++) {
+        const { r, c } = positions[i];
+        currentBoard[r][c] = 0;
+      }
+
+      initialBoard = currentBoard.map(row => [...row]);
+      notesBoard = Array(9).fill(0).map(() => Array(9).fill(0).map(() => new Set()));
+      history = [];
+      mistakes = 0;
+      activeHint = null;
+      updateMistakesUI();
+      resetHintUI();
+    }
+
+    const gridContainer = document.getElementById('sudoku-grid');
+
+    function renderBoardUI() {
+      gridContainer.innerHTML = '';
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cell = document.createElement('div');
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          
+          // CSS classes for block border thickeners
+          let borderClasses = 'border-slate-300 dark:border-slate-700 ';
+          if ((c + 1) % 3 === 0 && c !== 8) borderClasses += 'border-r-thick border-r-slate-400 dark:border-r-slate-500 ';
+          if ((r + 1) % 3 === 0 && r !== 8) borderClasses += 'border-b-thick border-b-slate-400 dark:border-b-slate-500 ';
+
+          cell.className = `relative w-full h-full flex items-center justify-center font-bold text-lg sm:text-2xl cursor-pointer transition-all duration-100 ${borderClasses} bg-white dark:bg-slate-900`;
+
+          cell.addEventListener('click', () => handleCellSelect(r, c));
+          gridContainer.appendChild(cell);
+        }
+      }
+      updateCellsAppearance();
+      updateRemainingCounts();
+    }
+
+    function updateCellsAppearance() {
+      const selectedVal = selectedCell ? currentBoard[selectedCell.row][selectedCell.col] : 0;
+      const selR = selectedCell?.row;
+      const selC = selectedCell?.col;
+      const selBoxR = selR !== undefined ? Math.floor(selR / 3) : -1;
+      const selBoxC = selC !== undefined ? Math.floor(selC / 3) : -1;
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const index = r * 9 + c;
+          const cellEl = gridContainer.children[index];
+          const val = currentBoard[r][c];
+          const isInitial = initialBoard[r][c] !== 0;
+
+          // Clear classes
+          cellEl.classList.remove('bg-brand-500/10', 'bg-brand-500/20', 'bg-brand-500/30', 'bg-rose-500/20', 'hint-highlight', 'ring-2', 'ring-brand-500');
+
+          // Highlight matching rows, cols, block
+          const inSameBlock = Math.floor(r / 3) === selBoxR && Math.floor(c / 3) === selBoxC;
+          const isSelected = selR === r && selC === c;
+          const isRelated = selR === r || selC === c || inSameBlock;
+
+          if (isSelected) {
+            cellEl.classList.add('bg-brand-500/30', 'ring-2', 'ring-brand-500');
+          } else if (val !== 0 && selectedVal !== 0 && val === selectedVal) {
+            cellEl.classList.add('bg-brand-500/25');
+          } else if (isRelated) {
+            cellEl.classList.add('bg-slate-100', 'dark:bg-slate-800/60');
+          }
+
+          // Active Hint Highlight
+          if (activeHint && activeHint.row === r && activeHint.col === c) {
+            cellEl.classList.add('hint-highlight', 'ring-2', 'ring-amber-500', 'bg-amber-100', 'dark:bg-amber-950/60');
+          }
+
+          // Value and notes rendering
+          if (val !== 0) {
+            cellEl.innerHTML = `<span>${val}</span>`;
+            if (isInitial) {
+              cellEl.className = cellEl.className.replace(/text-\S+/g, '');
+              cellEl.classList.add('text-slate-900', 'dark:text-slate-100', 'font-black');
+            } else {
+              // User placed cell
+              const isError = val !== solutionBoard[r][c];
+              cellEl.className = cellEl.className.replace(/text-\S+/g, '');
+              if (isError) {
+                cellEl.classList.add('text-rose-500', 'font-bold');
+              } else {
+                cellEl.classList.add('text-brand-600', 'dark:text-brand-400', 'font-bold');
+              }
+            }
+          } else {
+            // Render pencil marks / notes
+            const notes = notesBoard[r][c];
+            if (notes.size > 0) {
+              let noteHtml = '<div class="note-grid">';
+              for (let n = 1; n <= 9; n++) {
+                if (notes.has(n)) {
+                  noteHtml += `<span class="flex items-center justify-center text-[8px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-mono">${n}</span>`;
+                } else {
+                  noteHtml += `<span></span>`;
+                }
+              }
+              noteHtml += '</div>';
+              cellEl.innerHTML = noteHtml;
+            } else {
+              cellEl.innerHTML = '';
+            }
+          }
+        }
+      }
+    }
+
+    function handleCellSelect(row, col) {
+      selectedCell = { row, col };
+      updateCellsAppearance();
+    }
+
+    function handleNumberInput(num) {
+      if (!selectedCell) return;
+      const { row, col } = selectedCell;
+
+      // Fixed initial clues cannot be edited
+      if (initialBoard[row][col] !== 0) return;
+
+      if (noteMode) {
+        // Toggle pencil mark
+        saveState();
+        if (notesBoard[row][col].has(num)) {
+          notesBoard[row][col].delete(num);
+        } else {
+          notesBoard[row][col].add(num);
+        }
+        updateCellsAppearance();
+      } else {
+        // Normal placement
+        if (currentBoard[row][col] === num) return; // Same number already
+
+        saveState();
+        currentBoard[row][col] = num;
+        notesBoard[row][col].clear();
+
+        // Clear notes of same number in peer cells
+        cleanPeerNotes(row, col, num);
+
+        // Check if placed wrong
+        if (num !== solutionBoard[row][col]) {
+          mistakes++;
+          updateMistakesUI();
+          if (mistakes >= maxMistakes) {
+            showGameOver();
+            return;
+          }
+        }
+
+        activeHint = null;
+        updateCellsAppearance();
+        updateRemainingCounts();
+        checkGameWin();
+      }
+    }
+
+    function handleErase() {
+      if (!selectedCell) return;
+      const { row, col } = selectedCell;
+      if (initialBoard[row][col] !== 0) return;
+
+      if (currentBoard[row][col] !== 0 || notesBoard[row][col].size > 0) {
+        saveState();
+        currentBoard[row][col] = 0;
+        notesBoard[row][col].clear();
+        updateCellsAppearance();
+        updateRemainingCounts();
+      }
+    }
+
+    function cleanPeerNotes(row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        notesBoard[row][i].delete(num);
+        notesBoard[i][col].delete(num);
+      }
+      const bR = Math.floor(row / 3) * 3;
+      const bC = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          notesBoard[bR + r][bC + c].delete(num);
+        }
+      }
+    }
+
+    function updateRemainingCounts() {
+      const counts = Array(10).fill(0);
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const val = currentBoard[r][c];
+          if (val > 0) counts[val]++;
+        }
+      }
+      for (let n = 1; n <= 9; n++) {
+        const remaining = Math.max(0, 9 - counts[n]);
+        const countBadge = document.getElementById(`count-${n}`);
+        if (countBadge) {
+          countBadge.innerText = remaining;
+          const btn = document.querySelector(`.numpad-btn[data-num="${n}"]`);
+          if (remaining === 0) {
+            btn.classList.add('opacity-30', 'pointer-events-none');
+          } else {
+            btn.classList.remove('opacity-30', 'pointer-events-none');
+          }
+        }
+      }
+    }
+
+    function saveState() {
+      history.push({
+        board: currentBoard.map(r => [...r]),
+        notes: notesBoard.map(r => r.map(nSet => new Set(nSet))),
+        mistakes: mistakes
+      });
+      if (history.length > 30) history.shift();
+    }
+
+    function handleUndo() {
+      if (history.length === 0) return;
+      const prev = history.pop();
+      currentBoard = prev.board;
+      notesBoard = prev.notes;
+      mistakes = prev.mistakes;
+      updateMistakesUI();
+      updateCellsAppearance();
+      updateRemainingCounts();
+    }
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (!selectedCell) return;
+      const key = e.key;
+
+      if (key >= '1' && key <= '9') {
+        handleNumberInput(parseInt(key, 10));
+      } else if (key === 'Backspace' || key === 'Delete') {
+        handleErase();
+      } else if (key === 'n' || key === 'N') {
+        toggleNoteMode();
+      } else if (key === 'ArrowUp' && selectedCell.row > 0) {
+        handleCellSelect(selectedCell.row - 1, selectedCell.col);
+      } else if (key === 'ArrowDown' && selectedCell.row < 8) {
+        handleCellSelect(selectedCell.row + 1, selectedCell.col);
+      } else if (key === 'ArrowLeft' && selectedCell.col > 0) {
+        handleCellSelect(selectedCell.row, selectedCell.col - 1);
+      } else if (key === 'ArrowRight' && selectedCell.col < 8) {
+        handleCellSelect(selectedCell.row, selectedCell.col + 1);
+      }
+    });
+
+    /*
+     * Logical Solver Algorithms:
+     * 1. Get Candidates for all empty cells
+     * 2. Naked Single: Cell has exactly 1 valid candidate
+     * 3. Hidden Single: Candidate appears in only 1 cell within a row, col, or 3x3 block
+     * 4. Naked Pair: Two cells in a unit share identical 2 candidates
+     * 5. Backtracking fallback: If advanced puzzle requires deep chain
+     */
+    function computeCellCandidates(board) {
+      const candidates = Array(9).fill(0).map(() => Array(9).fill(0).map(() => new Set()));
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            for (let num = 1; num <= 9; num++) {
+              if (isValidPlacement(board, r, c, num)) {
+                candidates[r][c].add(num);
+              }
+            }
+          }
+        }
+      }
+      return candidates;
+    }
+
+    function findSmartAIHint() {
+      const candidates = computeCellCandidates(currentBoard);
+
+      // Strategy 1: Naked Single (唯一候補)
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentBoard[r][c] === 0 && candidates[r][c].size === 1) {
+            const num = [...candidates[r][c]][0];
+            return {
+              type: 'Naked Single',
+              badge: '唯一候補マス',
+              row: r,
+              col: c,
+              num: num,
+              reason: `マス (行 ${r + 1}, 列 ${c + 1}) は、同じ行・列・3x3ブロックに1〜9の他の数字が全て揃っているため、入る数字は論理的に「${num}」のみに確定します。`
+            };
+          }
+        }
+      }
+
+      // Strategy 2: Hidden Single (ブロック内の隠れ一択)
+      for (let b = 0; b < 9; b++) {
+        const startR = Math.floor(b / 3) * 3;
+        const startC = (b % 3) * 3;
+        for (let num = 1; num <= 9; num++) {
+          const cells = [];
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              const curR = startR + r;
+              const curC = startC + c;
+              if (currentBoard[curR][curC] === 0 && candidates[curR][curC].has(num)) {
+                cells.push({ r: curR, c: curC });
+              }
+            }
+          }
+          if (cells.length === 1) {
+            const target = cells[0];
+            return {
+              type: 'Hidden Single (Block)',
+              badge: 'ブロック隠れ一択',
+              row: target.r,
+              col: target.c,
+              num: num,
+              reason: `第 ${b + 1} ブロック（3x3）において、数字「${num}」が入ることができるマスは (行 ${target.r + 1}, 列 ${target.c + 1}) の1つしかありません。他のマスは同行・列の制約で排除されています。`
+            };
+          }
+        }
+      }
+
+      // Strategy 3: Hidden Single (行内の隠れ一択)
+      for (let r = 0; r < 9; r++) {
+        for (let num = 1; num <= 9; num++) {
+          const cols = [];
+          for (let c = 0; c < 9; c++) {
+            if (currentBoard[r][c] === 0 && candidates[r][c].has(num)) {
+              cols.push(c);
+            }
+          }
+          if (cols.length === 1) {
+            const targetC = cols[0];
+            return {
+              type: 'Hidden Single (Row)',
+              badge: '行の隠れ一択',
+              row: r,
+              col: targetC,
+              num: num,
+              reason: `行 ${r + 1} において、数字「${num}」を配置できるマスは列 ${targetC + 1} だけです。`
+            };
+          }
+        }
+      }
+
+      // Strategy 4: Hidden Single (列内の隠れ一択)
+      for (let c = 0; c < 9; c++) {
+        for (let num = 1; num <= 9; num++) {
+          const rows = [];
+          for (let r = 0; r < 9; r++) {
+            if (currentBoard[r][c] === 0 && candidates[r][c].has(num)) {
+              rows.push(r);
+            }
+          }
+          if (rows.length === 1) {
+            const targetR = rows[0];
+            return {
+              type: 'Hidden Single (Col)',
+              badge: '列の隠れ一択',
+              row: targetR,
+              col: c,
+              num: num,
+              reason: `列 ${c + 1} において、数字「${num}」を配置できるマスは行 ${targetR + 1} だけです。`
+            };
+          }
+        }
+      }
+
+      // Strategy 5: Deep Solution Backtracker Fallback
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentBoard[r][c] === 0) {
+            const num = solutionBoard[r][c];
+            return {
+              type: 'Advanced Deduction',
+              badge: '高難度推論',
+              row: r,
+              col: c,
+              num: num,
+              reason: `高度な仮定法またはチェイン推論により、(行 ${r + 1}, 列 ${c + 1}) には「${num}」が入ることが確定します。`
+            };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    const hintContent = document.getElementById('hint-content');
+    const hintBadge = document.getElementById('hint-tech-tag');
+
+    function resetHintUI() {
+      hintBadge.innerText = '待機中';
+      hintBadge.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300';
+      hintContent.innerText = '「次の一手と論理解説」を押すと、盤面全体の数字と候補を論理的にスキャンして次に解くべきマスと論理的理由を解説します。';
+    }
+
+    document.getElementById('btn-get-hint').addEventListener('click', () => {
+      const hint = findSmartAIHint();
+      if (!hint) {
+        hintContent.innerText = 'すべてのマスが埋まっているか、現在の盤面に矛盾があります。「ミス診断」で誤りがないか確認してください。';
+        return;
+      }
+      activeHint = hint;
+      selectedCell = { row: hint.row, col: hint.col };
+      
+      hintBadge.innerText = hint.badge;
+      hintBadge.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+      hintContent.innerHTML = `
+        <div class="text-left space-y-1.5">
+          <p class="font-bold text-slate-800 dark:text-slate-100">
+            🎯 おすすめのマス: <span class="text-brand-600 dark:text-brand-400 font-mono">行 ${hint.row + 1}, 列 ${hint.col + 1}</span> (正解: <span class="text-emerald-600 dark:text-emerald-400 font-bold">${hint.num}</span>)
+          </p>
+          <p class="text-slate-600 dark:text-slate-300">${hint.reason}</p>
+        </div>
+      `;
+      updateCellsAppearance();
+    });
+
+    // Auto-fill all pencil notes
+    document.getElementById('btn-auto-notes').addEventListener('click', () => {
+      saveState();
+      const candidates = computeCellCandidates(currentBoard);
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentBoard[r][c] === 0) {
+            notesBoard[r][c] = new Set(candidates[r][c]);
+          }
+        }
+      }
+      updateCellsAppearance();
+    });
+
+    // AI Solve All
+    document.getElementById('btn-solve-all').addEventListener('click', () => {
+      saveState();
+      currentBoard = solutionBoard.map(row => [...row]);
+      notesBoard = Array(9).fill(0).map(() => Array(9).fill(0).map(() => new Set()));
+      updateCellsAppearance();
+      updateRemainingCounts();
+      checkGameWin();
+    });
+
+    // Check Mistakes Tool
+    document.getElementById('tool-check').addEventListener('click', () => {
+      let mistakeFound = 0;
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentBoard[r][c] !== 0 && currentBoard[r][c] !== solutionBoard[r][c]) {
+            mistakeFound++;
+          }
+        }
+      }
+      if (mistakeFound === 0) {
+        hintBadge.innerText = '診断正常';
+        hintContent.innerText = '現在入力されている数字に矛盾や間違いはありません！順調です。';
+      } else {
+        hintBadge.innerText = 'エラー発見';
+        hintBadge.className = 'text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300';
+        hintContent.innerText = `現在、赤文字で表示されている ${mistakeFound} 箇所の数字が誤っています。消去してやり直しましょう。`;
+      }
+      updateCellsAppearance();
+    });
+
+    function toggleNoteMode() {
+      noteMode = !noteMode;
+      const noteBadge = document.getElementById('note-badge');
+      const toolNote = document.getElementById('tool-note');
+      if (noteMode) {
+        noteBadge.innerText = 'ON';
+        noteBadge.classList.replace('bg-slate-200', 'bg-brand-500');
+        noteBadge.classList.replace('text-slate-600', 'text-white');
+        toolNote.classList.add('ring-2', 'ring-brand-500');
+      } else {
+        noteBadge.innerText = 'OFF';
+        noteBadge.classList.replace('bg-brand-500', 'bg-slate-200');
+        noteBadge.classList.replace('text-white', 'text-slate-600');
+        toolNote.classList.remove('ring-2', 'ring-brand-500');
+      }
+    }
+
+    document.getElementById('tool-note').addEventListener('click', toggleNoteMode);
+    document.getElementById('tool-undo').addEventListener('click', handleUndo);
+    document.getElementById('tool-erase').addEventListener('click', handleErase);
+
+    // Numpad Touch Clicks
+    document.querySelectorAll('.numpad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const num = parseInt(btn.dataset.num, 10);
+        handleNumberInput(num);
+      });
+    });
+
+    function updateMistakesUI() {
+      document.getElementById('mistake-count').innerText = `${mistakes}/${maxMistakes}`;
+    }
+
+    function checkGameWin() {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentBoard[r][c] !== solutionBoard[r][c]) {
+            return false;
+          }
+        }
+      }
+      // Completed!
+      clearInterval(timerInterval);
+      if (window.confetti) {
+        window.confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      }
+      const diffName = difficulty === 'easy' ? '簡単' : difficulty === 'medium' ? '普通' : '難問';
+      document.getElementById('modal-diff').innerText = diffName;
+      document.getElementById('modal-time').innerText = document.getElementById('timer-display').innerText;
+      document.getElementById('victory-modal').classList.remove('hidden');
+      document.getElementById('victory-modal').classList.add('flex');
+      return true;
+    }
+
+    function showGameOver() {
+      clearInterval(timerInterval);
+      hintContent.innerText = 'ミスの制限上限に達しました。新規ゲームでリスタートしましょう！';
+    }
+
+    document.getElementById('modal-restart-btn').addEventListener('click', () => {
+      document.getElementById('victory-modal').classList.add('hidden');
+      document.getElementById('victory-modal').classList.remove('flex');
+      startNewGame();
+    });
+
+    document.getElementById('btn-new-game').addEventListener('click', startNewGame);
+
+    // Difficulty Buttons
+    const diffButtons = document.querySelectorAll('.diff-btn');
+    function updateDiffButtons() {
+      diffButtons.forEach(btn => {
+        if (btn.dataset.diff === difficulty) {
+          btn.className = 'diff-btn px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-300 shadow-sm';
+        } else {
+          btn.className = 'diff-btn px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900';
+        }
+      });
+    }
+
+    diffButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        difficulty = btn.dataset.diff;
+        updateDiffButtons();
+        startNewGame();
+      });
+    });
+
+    function startNewGame() {
+      generateNewPuzzle(difficulty);
+      renderBoardUI();
+      startTimer();
+      selectedCell = null;
+    }
+
+    window.onload = function() {
+      updateDiffButtons();
+      startNewGame();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3x3 Sudoku Block Borders */
+.border-b-thick { border-bottom-width: 2.5px !important; }
+.border-r-thick { border-right-width: 2.5px !important; }
+
+/* Subtle touch active states */
+.touch-btn:active {
+  transform: scale(0.95);
+}
+
+/* Pulsing hint highlight animation */
+@keyframes hintPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(99, 102, 241, 0)); }
+  50% { transform: scale(1.04); filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.6)); }
+}
+.hint-highlight {
+  animation: hintPulse 1.2s infinite ease-in-out;
+  z-index: 10;
+}
+
+/* Pencil mark 3x3 layout within cell */
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  height: 100%;
+  width: 100%;
+  padding: 1px;
+}
