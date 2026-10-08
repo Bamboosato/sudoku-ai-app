@@ -8,7 +8,7 @@ interface BoardProps {
 }
 
 export default function Board({ state, readOnly = false, onSelect }: BoardProps) {
-  const { board, initial, solution, notes, selected, activeHint } = state
+  const { board, initial, notes, selected, activeHint } = state
   const selVal = selected ? board[selected.row][selected.col] : 0
 
   return (
@@ -30,7 +30,6 @@ export default function Board({ state, readOnly = false, onSelect }: BoardProps)
                 col={c}
                 value={value}
                 isInitial={initial[r][c] !== 0}
-                isError={value !== 0 && value !== solution[r][c]}
                 notes={notes[r][c]}
                 isSelected={isSelected}
                 isSameValue={selVal !== 0 && value === selVal}

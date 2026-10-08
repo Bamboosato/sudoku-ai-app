@@ -2,7 +2,6 @@ import {
   cleanPeerNotes,
   cloneGrid,
   cloneNotes,
-  countMistakes,
   createEmptyNotes,
 } from './board'
 import { generatePuzzle } from './generator'
@@ -138,19 +137,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       notes[row][col].clear()
       cleanPeerNotes(notes, row, col, num)
 
-      let mistakes = state.mistakes
-      let hintPanel = state.hintPanel
-      if (num !== state.solution[row][col]) {
-        mistakes++
-        if (mistakes >= MAX_MISTAKES) {
-          hintPanel = {
-            ...hintPanel,
-            hint: undefined,
-            text: 'ミスの制限上限に達しました。新規ゲームでリスタートしましょう！',
-          }
-        }
-      }
-      return { ...state, history, board, notes, mistakes, hintPanel, activeHint: null }
+      return { ...state, history, board, notes, activeHint: null }
     }
 
     case 'ERASE': {
@@ -185,7 +172,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           hintPanel: {
             ...state.hintPanel,
             hint: undefined,
-            text: 'すべてのマスが埋まっているか、現在の盤面に矛盾があります。「ミス診断」で誤りがないか確認してください。',
+            text: 'すべてのマスが埋まっているか、現在の盤面に矛盾があります。「誤入力リセット」で誤りがないか確認してください。',
           },
         }
       }
@@ -222,21 +209,49 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case 'CHECK': {
-      const found = countMistakes(state.board, state.solution)
-      const hintPanel: HintPanelState =
-        found === 0
-          ? {
-              ...state.hintPanel,
-              badge: '診断正常',
-              hint: undefined,
-              text: '現在入力されている数字に矛盾や間違いはありません！順調です。',
-            }
-          : {
-              badge: 'エラー発見',
-              tone: 'rose',
-              text: `現在、赤文字で表示されている ${found} 箇所の数字が誤っています。消去してやり直しましょう。`,
-            }
-      return { ...state, hintPanel }
+      let found = 0
+      const board = cloneGrid(state.board)
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] !== 0 && board[r][c] !== state.solution[r][c]) {
+            board[r][c] = 0
+            found++
+          }
+        }
+      }
+
+      if (found === 0) {
+        return {
+          ...state,
+          hintPanel: {
+            ...state.hintPanel,
+            badge: '診断正常',
+            tone: 'default',
+            hint: undefined,
+            text: '現在入力されている数字に矛盾や間違いはありません！順調です。',
+          },
+        }
+      }
+
+      const history = withSnapshot(state)
+      const mistakes = state.mistakes + 1
+      const isGameOver = mistakes >= MAX_MISTAKES
+      const hintPanel: HintPanelState = {
+        badge: '誤入力リセット',
+        tone: 'rose',
+        text: isGameOver
+          ? `誤って入力されていた ${found} 箇所の数字をリセットしましたが、ミス制限上限（${MAX_MISTAKES}回）に達しました。新規ゲームでリスタートしましょう！`
+          : `誤って入力されていた ${found} 箇所の数字をリセットしました（ミス: ${mistakes}/${MAX_MISTAKES}）。`,
+      }
+
+      return {
+        ...state,
+        history,
+        board,
+        mistakes,
+        hintPanel,
+        activeHint: null,
+      }
     }
   }
 }
