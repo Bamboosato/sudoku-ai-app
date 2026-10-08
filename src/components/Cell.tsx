@@ -33,15 +33,15 @@ export default function Cell({
   // Background / ring (priority: hint > selected > same value > related > default)
   let bg = 'bg-white dark:bg-slate-900'
   if (isHint) bg = 'hint-highlight ring-2 ring-amber-500 bg-amber-100 dark:bg-amber-950/60'
-  else if (isSelected) bg = 'bg-brand-500/30 ring-2 ring-brand-500'
-  else if (value !== 0 && isSameValue) bg = 'bg-brand-500/25'
+  else if (isSelected) bg = 'bg-brand-500/20 dark:bg-brand-500/30 ring-2 ring-brand-500'
+  else if (value !== 0 && isSameValue) bg = 'bg-brand-500/15 dark:bg-brand-500/25'
   else if (isRelated) bg = 'bg-slate-100 dark:bg-slate-800/60'
 
   let text = ''
   if (value !== 0) {
-    if (isInitial) text = 'text-slate-900 dark:text-slate-100 font-black'
-    else if (isError) text = 'text-rose-500 font-bold'
-    else text = 'text-brand-600 dark:text-brand-400 font-bold'
+    if (isInitial) text = 'text-slate-900 dark:text-white font-black'
+    else if (isError) text = 'text-rose-600 dark:text-rose-400 font-bold'
+    else text = 'text-blue-600 dark:text-sky-300 font-bold'
   } else {
     text = 'font-bold'
   }
@@ -59,7 +59,7 @@ export default function Cell({
             notes.has(n) ? (
               <span
                 key={n}
-                className="flex items-center justify-center text-[8px] sm:text-[10px] leading-none text-slate-500 dark:text-slate-400 font-mono select-none"
+                className="flex items-center justify-center text-[8px] sm:text-[10px] leading-none text-slate-500 dark:text-slate-300 font-mono select-none"
               >
                 {n}
               </span>
