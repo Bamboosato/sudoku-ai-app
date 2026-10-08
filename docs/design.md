@@ -59,7 +59,7 @@ sudoku-ai-app/
 │   └── vitePlugin.ts          # Vite ミドルウェアハンドラ
 ├── src/
 │   ├── components/            # UI コンポーネント群
-│   │   ├── ActionTools.tsx    # Undo, 消去, メモ切替, ミス診断ボタン
+│   │   ├── ActionTools.tsx    # Undo, 消去, メモ切替, 誤入力リセットボタン
 │   │   ├── ApiKeyModal.tsx    # API キー設定モーダル (BYOK)
 │   │   ├── Board.tsx          # 9x9 数独グリッド表示
 │   │   ├── Cell.tsx           # 個別セル（数字・メモ表示・ハイライト）

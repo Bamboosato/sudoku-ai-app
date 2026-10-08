@@ -3,7 +3,6 @@ interface CellProps {
   col: number
   value: number
   isInitial: boolean
-  isError: boolean
   notes: Set<number>
   isSelected: boolean
   isSameValue: boolean
@@ -17,7 +16,6 @@ export default function Cell({
   col,
   value,
   isInitial,
-  isError,
   notes,
   isSelected,
   isSameValue,
@@ -40,7 +38,6 @@ export default function Cell({
   let text = ''
   if (value !== 0) {
     if (isInitial) text = 'text-slate-900 dark:text-white font-black'
-    else if (isError) text = 'text-rose-600 dark:text-rose-400 font-bold'
     else text = 'text-blue-600 dark:text-sky-300 font-bold'
   } else {
     text = 'font-bold'

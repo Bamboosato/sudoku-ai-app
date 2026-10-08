@@ -48,7 +48,7 @@ export default function ActionTools({
       </button>
       <button onClick={onCheck} disabled={disabled} className={`${toolBase} ${disabledCls}`}>
         <i className="fa-solid fa-shield-halved text-base text-brand-600 dark:text-brand-400 mb-1"></i>
-        <span className={labelCls}>ミス診断</span>
+        <span className={labelCls}>誤入力リセット</span>
       </button>
     </div>
   )

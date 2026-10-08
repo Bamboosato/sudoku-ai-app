@@ -9,6 +9,7 @@ import {
   isValidPlacement,
 } from './board'
 import { generatePuzzle } from './generator'
+import { createGameState, gameReducer } from './gameReducer'
 import { findSmartAIHint } from './hints'
 import { computeCellCandidates, countSolutions, solveSudoku } from './solver'
 import type { Grid } from './types'
@@ -346,4 +347,74 @@ describe('findSmartAIHint with mistake detection & type discrimination', () => {
     }
   })
 })
+
+describe('gameReducer action mechanics (no instant spoiler & mistake reset)', () => {
+  it('does NOT increment mistakes or trigger game over on wrong INPUT', () => {
+    let state = createGameState('easy')
+    // Find an empty cell
+    let targetR = -1
+    let targetC = -1
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (state.initial[r][c] === 0) {
+          targetR = r
+          targetC = c
+          break
+        }
+      }
+      if (targetR !== -1) break
+    }
+
+    const wrongNum = (state.solution[targetR][targetC] % 9) + 1 // guaranteed wrong
+    state = gameReducer(state, { type: 'SELECT', pos: { row: targetR, col: targetC } })
+    state = gameReducer(state, { type: 'INPUT', num: wrongNum })
+
+    // Mistakes count should remain 0! (No instant spoilers)
+    expect(state.mistakes).toBe(0)
+    expect(state.board[targetR][targetC]).toBe(wrongNum)
+  })
+
+  it('resets wrong cells and increments mistakes on CHECK action', () => {
+    let state = createGameState('easy')
+    // Find two empty cells and enter wrong numbers
+    const emptyCells: { r: number; c: number }[] = []
+    for (let r = 0; r < 9 && emptyCells.length < 2; r++) {
+      for (let c = 0; c < 9 && emptyCells.length < 2; c++) {
+        if (state.initial[r][c] === 0) emptyCells.push({ r, c })
+      }
+    }
+
+    for (const { r, c } of emptyCells) {
+      const wrong = (state.solution[r][c] % 9) + 1
+      state = gameReducer(state, { type: 'SELECT', pos: { row: r, col: c } })
+      state = gameReducer(state, { type: 'INPUT', num: wrong })
+    }
+
+    expect(state.mistakes).toBe(0)
+
+    // Execute mistake reset action (CHECK)
+    state = gameReducer(state, { type: 'CHECK' })
+
+    // 1. Mistakes should increment by 1
+    expect(state.mistakes).toBe(1)
+    // 2. Both wrong cells should be reset to 0
+    for (const { r, c } of emptyCells) {
+      expect(state.board[r][c]).toBe(0)
+    }
+    // 3. Panel badge should indicate reset
+    expect(state.hintPanel.badge).toBe('誤入力リセット')
+  })
+
+  it('does NOT increment mistakes on CHECK when board has no mistakes', () => {
+    let state = createGameState('easy')
+    expect(state.mistakes).toBe(0)
+
+    state = gameReducer(state, { type: 'CHECK' })
+
+    // Mistakes should stay 0
+    expect(state.mistakes).toBe(0)
+    expect(state.hintPanel.badge).toBe('診断正常')
+  })
+})
+
 
