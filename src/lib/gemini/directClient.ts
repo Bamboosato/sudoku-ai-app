@@ -10,18 +10,25 @@ import {
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash'
 
-const LEVEL_INSTRUCTIONS: Record<HintLevel, string> = {
+const LEVEL_INSTRUCTIONS_NORMAL: Record<HintLevel, string> = {
   1: '【レベル1: ノーヒント】具体的なマスも数字も言わないこと。「今は焦らず、ブロックや行を一つ選んで、すでに入っている数字を見直してみましょう」のように、着眼点の方向だけを促す。',
   2: '【レベル2: 着眼点】注目すべき範囲（「第◯ブロック」「行◯」「列◯」のいずれか）と、使える考え方（例: 隠れ1択、唯一候補）だけを伝える。特定のマスと答えの数字は言わないこと。',
   3: '【レベル3: マス特定】注目すべき具体的なマス（行・列）と、そこを決める根拠を説明する。ただし入る数字そのものは直接言わず、ユーザー自身が気づけるように導くこと。',
   4: '【レベル4: 直接回答】注目すべきマスと入る数字を明示し、なぜそうなるのかを論理的にステップで解説する。',
 }
 
+const LEVEL_INSTRUCTIONS_MISTAKE: Record<HintLevel, string> = {
+  1: '【レベル1: 誤入力の存在のみ】具体的なマス（行・列）や数字は絶対に言わないこと。「入力済みの数字の中に誤りがあるようです。まずは各ブロックや行を落ち着いて見直してみましょう」のように、誤入力の存在と見直しだけを促す。',
+  2: '【レベル2: 誤入力の範囲】誤入力が存在する大まかな範囲（「第◯ブロック」「行◯」「列◯」のいずれか）だけを伝える。具体的なマス（行・列）や数字は言わないこと。',
+  3: '【レベル3: 誤入力マスの特定】誤入力が存在する具体的なマス（行・列）を特定し、そのマスを消去または見直すよう促す。ただし、正解の数字そのものは絶対に言わないこと。',
+  4: '【レベル4: 誤入力の正解提示】誤入力が存在するマス（行・列）を特定し、「保存済みの正解では、このマスは◯です」と伝えること。推論根拠が存在しない場合は架空の推論や手法を捏造せず、保存済みの正解として案内すること。',
+}
+
 const SYSTEM_INSTRUCTION = `あなたは数独アプリの親切なコーチです。日本語で、人間味のある温かく簡潔なトーンで話してください（最大4文程度、絵文字は多くても1つ）。
-- 「確定情報」に書かれたマスと数字は正解であり、それ以外の答えを推測しないこと。
-- 指定されたヒントレベルを厳守し、レベルが許す範囲を超えて答えを漏らさないこと。
+- 「確定情報」に書かれた内容を厳守し、それ以外の答えを推測しないこと。
+- 指定されたヒントレベルを厳守し、レベルが許す範囲を超えてマスや数字を漏らさないこと。
 - 行・列は 1 始まりで表現すること（例: 「行3、列5」）。
-- 盤面にミス（誤入力）がある場合は、先にそれを見直すよう優しく促すこと。`
+- 盤面にミス（誤入力）がある場合は、次に進む前にまず誤入力の修正を優しく促すこと。`
 
 function boardToText(board: Grid): string {
   return board
@@ -39,9 +46,18 @@ export function buildPrompt(req: GeminiHintRequest): string {
   }
 
   const local: Hint | null = findSmartAIHint(req.board, req.solution)
-  const target = local
-    ? `行${local.row + 1}、列${local.col + 1} に「${local.num}」（手法: ${local.type}。根拠メモ: ${local.reason}）`
-    : 'なし（盤面は完成済みか矛盾あり）'
+  const isMistakeMode = local?.kind === 'correction' || wrongCells.length > 0
+
+  let target: string
+  if (local?.kind === 'correction') {
+    const block = Math.floor(local.row / 3) * 3 + Math.floor(local.col / 3) + 1
+    const correctVal = req.solution[local.row][local.col]
+    target = `【誤入力の見直し】行${local.row + 1}、列${local.col + 1} の入力「${local.currentNum}」は誤り（第${block}ブロック）。保存済みの正解は「${correctVal}」。※推論根拠は未導出のため、架空の論理解説は作らず「保存済みの正解では${correctVal}」と案内すること。`
+  } else if (local?.kind === 'placement') {
+    target = `行${local.row + 1}、列${local.col + 1} に「${local.num}」（手法: ${local.type}。根拠メモ: ${local.reason}）`
+  } else {
+    target = 'なし（盤面は完成済みか矛盾あり）'
+  }
 
   const emptyCount = req.board.flat().filter((n) => n === 0).length
   const noteLines: string[] = []
@@ -62,11 +78,11 @@ ${boardToText(req.board)}
 - 誤って入力されているマス: ${wrongCells.length ? wrongCells.join(', ') : 'なし'}
 ${noteLines.length ? `- ユーザーのメモ(行,列: 候補): ${noteLines.slice(0, 40).join(' / ')}` : ''}
 
-# 確定情報（正解。ヒントレベルが許す範囲でのみ利用すること）
-- 次に決めるべきマス: ${target}
+# 確定情報（ヒントレベルが許す範囲でのみ利用すること）
+- 指導対象: ${target}
 
 # 依頼
-${LEVEL_INSTRUCTIONS[req.level]}`
+${isMistakeMode ? LEVEL_INSTRUCTIONS_MISTAKE[req.level] : LEVEL_INSTRUCTIONS_NORMAL[req.level]}`
 }
 
 /**

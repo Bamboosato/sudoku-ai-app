@@ -45,16 +45,29 @@ export default function HintPanel({
 
       <div className="py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300 min-h-[90px] flex items-center justify-center text-center">
         {hint ? (
-          <div className="text-left space-y-1.5">
-            <p className="font-bold text-slate-800 dark:text-slate-100">
-              🎯 おすすめのマス:{' '}
-              <span className="text-brand-600 dark:text-brand-400 font-mono">
-                行 {hint.row + 1}, 列 {hint.col + 1}
-              </span>{' '}
-              (正解: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{hint.num}</span>)
-            </p>
-            <p className="text-slate-600 dark:text-slate-300">{hint.reason}</p>
-          </div>
+          hint.kind === 'placement' ? (
+            <div className="text-left space-y-1.5">
+              <p className="font-bold text-slate-800 dark:text-slate-100">
+                🎯 おすすめのマス:{' '}
+                <span className="text-brand-600 dark:text-brand-400 font-mono">
+                  行 {hint.row + 1}, 列 {hint.col + 1}
+                </span>{' '}
+                (正解: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{hint.num}</span>)
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">{hint.reason}</p>
+            </div>
+          ) : (
+            <div className="text-left space-y-1.5">
+              <p className="font-bold text-rose-600 dark:text-rose-400">
+                ⚠️ 誤入力の修正:{' '}
+                <span className="font-mono">
+                  行 {hint.row + 1}, 列 {hint.col + 1}
+                </span>{' '}
+                (現在: <span className="line-through">{hint.currentNum}</span>)
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">{hint.reason}</p>
+            </div>
+          )
         ) : (
           panel.text
         )}
