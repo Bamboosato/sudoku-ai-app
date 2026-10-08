@@ -9,7 +9,7 @@ export default defineConfig({
     geminiHintPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['pwa-icon.svg', 'favicon.ico'],
+      includeAssets: ['favicon.ico', 'pwa-icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Sudoku AI - スマート数独アシスタント',
         short_name: 'Sudoku AI',
@@ -20,8 +20,26 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
             src: '/pwa-icon.svg',
-            sizes: '192x192 512x512',
+            sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
           },
