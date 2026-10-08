@@ -1,3 +1,4 @@
+import { generateGeminiHintDirect } from './directClient'
 import type { GeminiHintClientErrorCode, GeminiHintRequest, GeminiHintResponse } from './types'
 
 export class GeminiHintClientError extends Error {
@@ -13,8 +14,10 @@ export class GeminiHintClientError extends Error {
 const CLIENT_TIMEOUT_MS = 30000
 
 /**
- * Calls the backend proxy (POST /api/hint). The API key never reaches the browser.
- * Throws GeminiHintClientError with a user-presentable (Japanese) message.
+ * Requests Gemini hint.
+ * - If user provided custom apiKey (localStorage), calls Google Generative Language REST API directly.
+ *   This avoids serverless function cold starts, payload limits, and backend failures on static/Vercel hosting.
+ * - Otherwise falls back to /api/hint backend proxy.
  */
 export async function requestGeminiHint(
   payload: GeminiHintRequest,
@@ -29,19 +32,26 @@ export async function requestGeminiHint(
   const onAbort = () => controller.abort()
   options?.signal?.addEventListener('abort', onAbort)
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (options?.apiKey) {
-    headers['x-gemini-api-key'] = options.apiKey
-  }
-
   try {
+    // 1. Direct REST call if user entered API key
+    if (options?.apiKey && options.apiKey.trim()) {
+      try {
+        return await generateGeminiHintDirect(payload, options.apiKey, controller.signal)
+      } catch (e: unknown) {
+        if (timedOut) throw new GeminiHintClientError('TIMEOUT', 'AIの応答がタイムアウトしました。もう一度お試しください。')
+        if ((e as Error).name === 'AbortError') throw new GeminiHintClientError('ABORTED', 'リクエストをキャンセルしました。')
+        const code = (e as { code?: GeminiHintClientErrorCode })?.code ?? 'UPSTREAM_ERROR'
+        const message = (e as Error).message || 'Gemini API との通信に失敗しました。'
+        throw new GeminiHintClientError(code, message)
+      }
+    }
+
+    // 2. Fallback to /api/hint proxy if no user key (e.g. server env key)
     let res: Response
     try {
       res = await fetch('/api/hint', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: controller.signal,
       })
