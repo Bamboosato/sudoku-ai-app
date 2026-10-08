@@ -20,9 +20,19 @@ export default function App() {
   const { toggle: toggleTheme } = useTheme()
   const { apiKey, hasCustomApiKey, saveApiKey, clearApiKey } = useApiKey()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isVictoryClosed, setIsVictoryClosed] = useState(false)
   const { state, won, seconds, remaining, newGame, actions } = useSudokuGame()
   const { advice, ask: askGemini } = useGeminiAdvice(state, apiKey)
   const time = formatTime(seconds)
+
+  // Reset victory modal visibility on new game
+  const handleNewGame = (diff?: typeof state.difficulty) => {
+    setIsVictoryClosed(false)
+    if (diff) newGame(diff)
+    else newGame(state.difficulty)
+  }
+
+  const showVictoryModal = won && !isVictoryClosed
 
   return (
     <>
@@ -39,23 +49,29 @@ export default function App() {
         <div className="flex flex-col items-center w-full max-w-[430px]">
           <DifficultyBar
             difficulty={state.difficulty}
-            onSelect={newGame}
-            onNewGame={() => newGame(state.difficulty)}
+            onSelect={handleNewGame}
+            onNewGame={() => handleNewGame(state.difficulty)}
           />
-          <Board state={state} onSelect={(row, col) => actions.select({ row, col })} />
+          <Board
+            state={state}
+            readOnly={won}
+            onSelect={(row, col) => actions.select({ row, col })}
+          />
           <ActionTools
             noteMode={state.noteMode}
+            disabled={won}
             onUndo={actions.undo}
             onErase={actions.erase}
             onToggleNote={actions.toggleNoteMode}
             onCheck={actions.check}
           />
-          <Numpad remaining={remaining} onInput={actions.input} />
+          <Numpad remaining={remaining} disabled={won} onInput={actions.input} />
         </div>
 
         <div className="w-full lg:w-80 flex flex-col gap-3">
           <HintPanel
             panel={state.hintPanel}
+            disabled={won}
             onHint={actions.hint}
             onAutoNotes={actions.autoNotes}
             onSolveAll={actions.solveAll}
@@ -63,6 +79,7 @@ export default function App() {
           <GeminiAdvisor
             advice={advice}
             hasCustomApiKey={hasCustomApiKey}
+            disabled={won}
             onAsk={askGemini}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
@@ -78,11 +95,12 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
       />
 
-      {won && (
+      {showVictoryModal && (
         <VictoryModal
           time={time}
           difficultyLabel={DIFFICULTY_LABELS[state.difficulty]}
-          onRestart={() => newGame(state.difficulty)}
+          onRestart={() => handleNewGame(state.difficulty)}
+          onClose={() => setIsVictoryClosed(true)}
         />
       )}
     </>

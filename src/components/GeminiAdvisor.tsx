@@ -5,6 +5,7 @@ import { HINT_LEVELS, HINT_LEVEL_LABELS, type HintLevel } from '../lib/gemini/ty
 interface GeminiAdvisorProps {
   advice: GeminiAdviceState
   hasCustomApiKey: boolean
+  disabled?: boolean
   onAsk: (level: HintLevel) => void
   onOpenSettings: () => void
 }
@@ -12,11 +13,13 @@ interface GeminiAdvisorProps {
 export default function GeminiAdvisor({
   advice,
   hasCustomApiKey,
+  disabled = false,
   onAsk,
   onOpenSettings,
 }: GeminiAdvisorProps) {
   const [level, setLevel] = useState<HintLevel>(1)
   const loading = advice.status === 'loading'
+  const isDisabled = disabled || loading
 
   return (
     <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -86,8 +89,8 @@ export default function GeminiAdvisor({
 
       <button
         onClick={() => onAsk(level)}
-        disabled={loading}
-        className="w-full py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 disabled:pointer-events-none"
+        disabled={isDisabled}
+        className="w-full py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-40 disabled:pointer-events-none"
       >
         <i className="fa-solid fa-wand-magic-sparkles text-brand-500"></i> Gemini に相談する
       </button>
