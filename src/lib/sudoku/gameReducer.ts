@@ -193,7 +193,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         activeHint: hint,
         selected: { row: hint.row, col: hint.col },
-        hintPanel: { badge: hint.badge, tone: 'amber', hint },
+        hintPanel: {
+          badge: hint.badge,
+          tone: hint.kind === 'correction' ? 'rose' : 'amber',
+          hint,
+        },
       }
     }
 

@@ -1,5 +1,5 @@
 import { cloneGrid, createEmptyGrid, shuffleArray } from './board'
-import { solveSudoku } from './solver'
+import { countSolutions, solveSudoku } from './solver'
 import type { Difficulty, Grid } from './types'
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -31,9 +31,23 @@ export function generatePuzzle(difficulty: Difficulty): Puzzle {
   }
   shuffleArray(positions)
 
-  for (let i = 0; i < CELLS_TO_REMOVE[difficulty]; i++) {
-    const { r, c } = positions[i]
+  const targetToRemove = CELLS_TO_REMOVE[difficulty]
+  let removedCount = 0
+
+  for (const { r, c } of positions) {
+    const backup = initial[r][c]
     initial[r][c] = 0
+
+    // Check if the puzzle still has exactly one solution
+    if (countSolutions(initial, 2) === 1) {
+      removedCount++
+      if (removedCount >= targetToRemove) break
+    } else {
+      // Multiple or zero solutions: restore the cell
+      initial[r][c] = backup
+    }
   }
+
   return { solution, initial }
 }
+

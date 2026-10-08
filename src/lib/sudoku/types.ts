@@ -7,11 +7,23 @@ export interface Position {
   col: number
 }
 
-export interface Hint {
+export interface BaseHint {
   type: string
   badge: string
   row: number
   col: number
-  num: number
   reason: string
 }
+
+export interface PlacementHint extends BaseHint {
+  kind: 'placement'
+  num: number
+}
+
+export interface CorrectionHint extends BaseHint {
+  kind: 'correction'
+  currentNum: number
+}
+
+export type Hint = PlacementHint | CorrectionHint
+

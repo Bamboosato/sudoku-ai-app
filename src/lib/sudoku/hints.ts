@@ -6,6 +6,24 @@ import type { Grid, Hint } from './types'
  * 1. Naked Single  2. Hidden Single (block / row / col)  3. Fallback to the known solution
  */
 export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
+  // Check for any incorrectly entered numbers first before calculating candidates
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const val = board[r][c]
+      if (val !== 0 && val !== solution[r][c]) {
+        return {
+          kind: 'correction',
+          type: 'Mistake Correction',
+          badge: '誤入力の修正',
+          row: r,
+          col: c,
+          currentNum: val,
+          reason: `マス (行 ${r + 1}, 列 ${c + 1}) に入力されている「${val}」は正解と異なっています。盤面に誤りがあると正しい候補が導けないため、まずはこのマスを消去または修正してください。`,
+        }
+      }
+    }
+  }
+
   const candidates = computeCellCandidates(board)
 
   // Strategy 1: Naked Single (唯一候補)
@@ -14,6 +32,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
       if (board[r][c] === 0 && candidates[r][c].size === 1) {
         const num = [...candidates[r][c]][0]
         return {
+          kind: 'placement',
           type: 'Naked Single',
           badge: '唯一候補マス',
           row: r,
@@ -43,6 +62,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
       if (cells.length === 1) {
         const target = cells[0]
         return {
+          kind: 'placement',
           type: 'Hidden Single (Block)',
           badge: 'ブロック隠れ一択',
           row: target.r,
@@ -63,6 +83,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
       }
       if (cols.length === 1) {
         return {
+          kind: 'placement',
           type: 'Hidden Single (Row)',
           badge: '行の隠れ一択',
           row: r,
@@ -83,6 +104,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
       }
       if (rows.length === 1) {
         return {
+          kind: 'placement',
           type: 'Hidden Single (Col)',
           badge: '列の隠れ一択',
           row: rows[0],
@@ -100,6 +122,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
       if (board[r][c] === 0) {
         const num = solution[r][c]
         return {
+          kind: 'placement',
           type: 'Advanced Deduction',
           badge: '高難度推論',
           row: r,

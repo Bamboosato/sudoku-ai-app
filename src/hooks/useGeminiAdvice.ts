@@ -23,6 +23,11 @@ export function useGeminiAdvice(game: GameState, apiKey?: string) {
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  useEffect(() => {
+    abortRef.current?.abort()
+    setAdvice({ status: 'idle' })
+  }, [apiKey])
+
   const ask = useCallback(async (level: HintLevel) => {
     const g = gameRef.current
     abortRef.current?.abort()
@@ -49,7 +54,7 @@ export function useGeminiAdvice(game: GameState, apiKey?: string) {
         e instanceof GeminiHintClientError ? e.message : '予期しないエラーが発生しました。もう一度お試しください。'
       setAdvice({ status: 'error', level, message })
     }
-  }, [])
+  }, [apiKey])
 
   return { advice, ask }
 }
