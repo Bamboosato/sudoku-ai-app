@@ -1,6 +1,6 @@
 export type Grid = number[][]
 export type Notes = Set<number>[][]
-export type Difficulty = 'easy' | 'medium' | 'hard'
+export type Difficulty = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
 
 export interface Position {
   row: number

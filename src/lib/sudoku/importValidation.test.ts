@@ -68,6 +68,11 @@ describe('importValidation', () => {
     if (res.status === 'ok') {
       expect(res.solution).toEqual(solution)
       expect(res.clues).toBeGreaterThanOrEqual(17)
+      expect(res.grading).toBeDefined()
+      expect(['beginner', 'easy', 'medium', 'hard', 'expert']).toContain(res.grading.difficulty)
+      expect(res.grading.label).toBeTruthy()
+      expect(res.grading.highestTechnique).toBeTruthy()
+      expect(res.grading.reason).toBeTruthy()
     }
   })
 

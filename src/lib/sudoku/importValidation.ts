@@ -1,9 +1,10 @@
 import { cloneGrid } from './board'
+import { gradePuzzleDifficulty, type DifficultyGradingResult } from './difficultyClassifier'
 import { countSolutions, solveSudoku } from './solver'
 import type { Grid, Position } from './types'
 
 export type ImportValidation =
-  | { status: 'ok'; solution: Grid; clues: number }
+  | { status: 'ok'; solution: Grid; clues: number; grading: DifficultyGradingResult }
   | { status: 'invalid-shape' }
   | { status: 'conflict'; cells: Position[]; clues: number }
   | { status: 'no-solution'; clues: number }
@@ -134,5 +135,7 @@ export function validateImportedBoard(grid: unknown): ImportValidation {
     return { status: 'no-solution', clues }
   }
 
-  return { status: 'ok', solution, clues }
+  const grading = gradePuzzleDifficulty(typedGrid, solution)
+
+  return { status: 'ok', solution, clues, grading }
 }

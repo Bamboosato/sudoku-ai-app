@@ -192,7 +192,13 @@ describe('countSolutions accuracy & safety', () => {
 })
 
 describe('generatePuzzle uniqueness & clue integrity', () => {
-  const difficulties: Array<'easy' | 'medium' | 'hard'> = ['easy', 'medium', 'hard']
+  const difficulties: Array<'beginner' | 'easy' | 'medium' | 'hard' | 'expert'> = [
+    'beginner',
+    'easy',
+    'medium',
+    'hard',
+    'expert',
+  ]
 
   for (const diff of difficulties) {
     it(`generates unique solution puzzle for difficulty: ${diff}`, () => {
@@ -244,9 +250,11 @@ describe('generatePuzzle uniqueness & clue integrity', () => {
 
   // Reproducible 100 puzzles test per difficulty
   for (const diff of difficulties) {
-    it(`verifies 100 consecutive puzzles are 100% unique for ${diff} with seeded PRNG`, () => {
-      // Mulberry32 seeded PRNG for reproducible test runs
-      let seed = 123456789
+    it(
+      `verifies 100 consecutive puzzles are 100% unique for ${diff} with seeded PRNG`,
+      () => {
+        // Mulberry32 seeded PRNG for reproducible test runs
+        let seed = 123456789
       const origRandom = Math.random
       Math.random = () => {
         seed |= 0
@@ -289,7 +297,7 @@ describe('generatePuzzle uniqueness & clue integrity', () => {
       } finally {
         Math.random = origRandom
       }
-    })
+    }, 20000)
   }
 })
 
@@ -427,11 +435,13 @@ describe('gameReducer action mechanics (no instant spoiler & mistake reset)', ()
     const { initial: importedInitial, solution: importedSolution } = generatePuzzle('medium')
     state = gameReducer(state, {
       type: 'IMPORT_PUZZLE',
+      difficulty: 'medium',
       initial: importedInitial,
       solution: importedSolution,
     })
 
     expect(state.gameId).toBe(prevGameId + 1)
+    expect(state.difficulty).toBe('medium')
     expect(state.source).toBe('imported')
     expect(state.initial).toEqual(importedInitial)
     expect(state.solution).toEqual(importedSolution)
@@ -460,6 +470,67 @@ describe('gameReducer action mechanics (no instant spoiler & mistake reset)', ()
     state = gameReducer(state, { type: 'INPUT', num: otherVal })
     // Should NOT change
     expect(state.board[firstClueR][firstClueC]).toBe(clueVal)
+  })
+
+  it('handles TOGGLE_PAUSE and RESUME correctly and guards mutations during pause', () => {
+    let state = createGameState('easy')
+    expect(state.isPaused).toBe(false)
+
+    // Toggle pause
+    state = gameReducer(state, { type: 'TOGGLE_PAUSE' })
+    expect(state.isPaused).toBe(true)
+
+    // While paused, mutations (INPUT, ERASE, UNDO, CHECK, SELECT) should be guarded and ignored
+    state = gameReducer(state, { type: 'SELECT', pos: { row: 0, col: 0 } })
+    expect(state.selected).toBeNull()
+
+    state = gameReducer(state, { type: 'INPUT', num: 5 })
+    expect(state.board[0][0]).toBe(state.initial[0][0])
+
+    state = gameReducer(state, { type: 'CHECK' })
+    expect(state.mistakes).toBe(0)
+
+    // Explicit resume
+    state = gameReducer(state, { type: 'RESUME' })
+    expect(state.isPaused).toBe(false)
+  })
+
+  it('handles LOAD_PUZZLE correctly: restores full state, board, notes, and resets gameId', () => {
+    let state = createGameState('easy')
+    const prevGameId = state.gameId
+
+    const dummyInitial = createEmptyGrid()
+    dummyInitial[0][0] = 5
+    const dummyBoard = createEmptyGrid()
+    dummyBoard[0][0] = 5
+    dummyBoard[0][1] = 3
+    const dummySolution = cloneGrid(SAMPLE_SOLUTION)
+    const dummyNotes = Array.from({ length: 9 }, () =>
+      Array.from({ length: 9 }, () => new Set<number>([1, 2])),
+    )
+
+    state = gameReducer(state, {
+      type: 'LOAD_PUZZLE',
+      puzzle: {
+        difficulty: 'expert',
+        source: 'imported',
+        initial: dummyInitial,
+        solution: dummySolution,
+        board: dummyBoard,
+        notes: dummyNotes,
+        elapsedSeconds: 120,
+        mistakes: 1,
+      },
+    })
+
+    expect(state.gameId).toBe(prevGameId + 1)
+    expect(state.difficulty).toBe('expert')
+    expect(state.source).toBe('imported')
+    expect(state.initial[0][0]).toBe(5)
+    expect(state.board[0][1]).toBe(3)
+    expect(state.notes[0][0].has(1)).toBe(true)
+    expect(state.mistakes).toBe(1)
+    expect(state.isPaused).toBe(false)
   })
 })
 
