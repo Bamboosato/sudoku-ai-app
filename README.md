@@ -121,9 +121,8 @@ sudoku-ai-app/
 │   │   ├── DifficultyBar.tsx  # 難易度切り替えバー
 │   │   ├── GeminiAdvisor.tsx  # Gemini AI アドバイザーパネル
 │   │   ├── Header.tsx         # ヘッダー (タイマー, ミスカウンタ, 設定)
-│   │   ├── HintPanel.tsx      # 論理ヒントパネル / 自動メモ / 解答展開
+│   │   ├── HintPanel.tsx      # 論理ヒントパネル (解法技法解説ポップオーバー内蔵) / 自動メモ / 解答展開
 │   │   ├── Numpad.tsx         # 1〜9 ナンパッド（残り配置数バッジ付き）
-│   │   ├── TechniqueInfo.tsx  # 解法テクニック解説ガイド
 │   │   └── VictoryModal.tsx   # 勝利モーダル
 │   ├── hooks/                 # カスタムフック
 │   │   ├── useApiKey.ts       # API キー localStorage 管理

@@ -66,9 +66,8 @@ sudoku-ai-app/
 │   │   ├── DifficultyBar.tsx  # 難易度選択バー
 │   │   ├── GeminiAdvisor.tsx  # Gemini AI アドバイザー（L1〜L4）
 │   │   ├── Header.tsx         # タイマー, ミスカウンタ, 設定, テーマ
-│   │   ├── HintPanel.tsx      # ローカル論理ヒント・自動メモ・解答展開
+│   │   ├── HintPanel.tsx      # 論理ヒント（解法技法ポップオーバー内蔵）・全メモ・解答展開
 │   │   ├── Numpad.tsx         # ナンパッド（残り配置可能数バッジ付き）
-│   │   ├── TechniqueInfo.tsx  # 数独解法テクニック解説ガイド
 │   │   └── VictoryModal.tsx   # クリア祝賀モーダル
 │   ├── hooks/                 # React カスタムフック
 │   │   ├── useApiKey.ts       # API キーの localStorage 同期

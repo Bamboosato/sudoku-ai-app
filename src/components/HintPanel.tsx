@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { BadgeTone, HintPanelState } from '../lib/sudoku'
 
 interface HintPanelProps {
@@ -14,6 +15,12 @@ const BADGE_TONES: Record<BadgeTone, string> = {
   rose: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
 }
 
+const TECHNIQUES = [
+  { name: 'Naked Single (唯一候補)', desc: 'そのマスに入れる数字が1通りしかない状態。' },
+  { name: 'Hidden Single (隠れ1択)', desc: '行・列・ブロック内でその数字が入れるマスが1つしかない状態。' },
+  { name: 'Naked Pair (同盟ペア)', desc: '同じ2つの候補を持つマスが2つあり他を除外。' },
+]
+
 const secondaryBtn =
   'py-2 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition flex items-center justify-center gap-1'
 
@@ -26,15 +33,76 @@ export default function HintPanel({
 }: HintPanelProps) {
   const { hint } = panel
   const disabledCls = disabled ? 'opacity-40 pointer-events-none' : ''
+  const [showHelp, setShowHelp] = useState(false)
+  const helpRef = useRef<HTMLDivElement>(null)
+
+  // Close popover when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!showHelp) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
+        setShowHelp(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowHelp(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showHelp])
 
   return (
-    <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+    <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+          <span className="w-2 h-2 rounded-full bg-brand-500"></span>
           <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <i className="fa-solid fa-wand-magic-sparkles text-brand-500"></i> AI 論理ヒント
+            <i className="fa-regular fa-lightbulb text-brand-500"></i> 論理ヒント
           </h2>
+          <div className="relative inline-block" ref={helpRef}>
+            <button
+              type="button"
+              onClick={() => setShowHelp((prev) => !prev)}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title="検出する解法技法の解説を見る"
+              aria-label="解法技法について"
+              aria-expanded={showHelp}
+            >
+              <i className="fa-regular fa-circle-question text-xs"></i>
+            </button>
+
+            {showHelp && (
+              <div className="absolute left-0 top-full mt-2 w-72 p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-700">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <i className="fa-solid fa-graduation-cap text-brand-500"></i> 検出する解法技法
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHelp(false)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs px-1"
+                    aria-label="閉じる"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <ul className="space-y-2 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                  {TECHNIQUES.map((t) => (
+                    <li key={t.name} className="flex items-start gap-1.5">
+                      <span className="text-brand-500 font-bold">•</span>
+                      <span>
+                        <strong className="text-slate-700 dark:text-slate-200">{t.name}</strong>: {t.desc}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
         <span
           className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${BADGE_TONES[panel.tone]}`}
@@ -79,7 +147,7 @@ export default function HintPanel({
           disabled={disabled}
           className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-brand-500/25 flex items-center justify-center gap-1.5 transition ${disabledCls}`}
         >
-          <i className="fa-solid fa-lightbulb"></i> 次の一手と論理解説
+          <i className="fa-regular fa-lightbulb"></i> 次の一手と論理解説
         </button>
 
         <div className="grid grid-cols-2 gap-2">
@@ -87,7 +155,7 @@ export default function HintPanel({
             <i className="fa-solid fa-list-ol"></i> 全メモ自動入力
           </button>
           <button onClick={onSolveAll} disabled={disabled} className={`${secondaryBtn} ${disabledCls}`}>
-            <i className="fa-solid fa-bolt text-amber-500"></i> AI自動解答
+            <i className="fa-solid fa-wand-magic-sparkles text-amber-500"></i> 全自動で解く
           </button>
         </div>
       </div>

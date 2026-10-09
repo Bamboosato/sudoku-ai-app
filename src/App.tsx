@@ -7,7 +7,6 @@ import GeminiAdvisor from './components/GeminiAdvisor'
 import Header from './components/Header'
 import HintPanel from './components/HintPanel'
 import Numpad from './components/Numpad'
-import TechniqueInfo from './components/TechniqueInfo'
 import VictoryModal from './components/VictoryModal'
 import { useApiKey } from './hooks/useApiKey'
 import { useGeminiAdvice } from './hooks/useGeminiAdvice'
@@ -83,7 +82,6 @@ export default function App() {
             onAsk={askGemini}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
-          <TechniqueInfo />
         </div>
       </main>
 
