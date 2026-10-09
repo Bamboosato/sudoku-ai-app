@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ActionTools from './components/ActionTools'
 import ApiKeyModal from './components/ApiKeyModal'
 import Board from './components/Board'
@@ -6,6 +6,7 @@ import DifficultyBar from './components/DifficultyBar'
 import GeminiAdvisor from './components/GeminiAdvisor'
 import Header from './components/Header'
 import HintPanel from './components/HintPanel'
+import ImportModal from './components/ImportModal'
 import Numpad from './components/Numpad'
 import VictoryModal from './components/VictoryModal'
 import { useApiKey } from './hooks/useApiKey'
@@ -19,10 +20,16 @@ export default function App() {
   const { toggle: toggleTheme } = useTheme()
   const { apiKey, hasCustomApiKey, saveApiKey, clearApiKey } = useApiKey()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [isVictoryClosed, setIsVictoryClosed] = useState(false)
-  const { state, won, seconds, remaining, newGame, actions } = useSudokuGame()
+  const { state, won, seconds, remaining, newGame, importPuzzle, actions } = useSudokuGame()
   const { advice, ask: askGemini } = useGeminiAdvice(state, apiKey)
   const time = formatTime(seconds)
+
+  // Has player made moves in the current game
+  const hasUnsavedGame = useMemo(() => {
+    return state.board.some((row, r) => row.some((val, c) => val !== state.initial[r][c]))
+  }, [state.board, state.initial])
 
   // Reset victory modal visibility on new game
   const handleNewGame = (diff?: typeof state.difficulty) => {
@@ -31,7 +38,15 @@ export default function App() {
     else newGame(state.difficulty)
   }
 
+  const handleImportPuzzle = (initial: number[][], solution: number[][]) => {
+    setIsVictoryClosed(false)
+    importPuzzle(initial, solution)
+  }
+
   const showVictoryModal = won && !isVictoryClosed
+
+  const displayDifficultyLabel =
+    state.source === 'imported' ? '取り込み問題' : DIFFICULTY_LABELS[state.difficulty]
 
   return (
     <>
@@ -50,6 +65,7 @@ export default function App() {
             difficulty={state.difficulty}
             onSelect={handleNewGame}
             onNewGame={() => handleNewGame(state.difficulty)}
+            onOpenImport={() => setIsImportOpen(true)}
           />
           <Board
             state={state}
@@ -93,10 +109,19 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
       />
 
+      <ImportModal
+        isOpen={isImportOpen}
+        apiKey={apiKey}
+        hasUnsavedGame={hasUnsavedGame}
+        onClose={() => setIsImportOpen(false)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onImport={handleImportPuzzle}
+      />
+
       {showVictoryModal && (
         <VictoryModal
           time={time}
-          difficultyLabel={DIFFICULTY_LABELS[state.difficulty]}
+          difficultyLabel={displayDifficultyLabel}
           onRestart={() => handleNewGame(state.difficulty)}
           onClose={() => setIsVictoryClosed(true)}
         />
