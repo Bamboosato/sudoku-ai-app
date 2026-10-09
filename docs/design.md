@@ -82,40 +82,44 @@ sudoku-ai-app/
 │   ├── components/            # UI コンポーネント群
 │   │   ├── ActionTools.tsx    # Undo, 消去, メモ切替, 誤入力リセットボタン
 │   │   ├── ApiKeyModal.tsx    # API キー設定モーダル (BYOK)
-│   │   ├── Board.tsx          # 9x9 数独グリッド表示
+│   │   ├── Board.tsx          # 9x9 数独グリッド表示（ポーズ時すりガラスオーバーレイ対応）
 │   │   ├── Cell.tsx           # 個別セル（数字・メモ表示・ハイライト）
-│   │   ├── DifficultyBar.tsx  # 難易度選択バー（+「画像から取り込み」ボタン）
+│   │   ├── DifficultyBar.tsx  # 5段階難易度選択バー（+「画像から取り込み」ボタン）
 │   │   ├── GeminiAdvisor.tsx  # Gemini AI アドバイザー（L1〜L4）
-│   │   ├── Header.tsx         # タイマー, ミスカウンタ, 設定, テーマ
+│   │   ├── Header.tsx         # タイマー, ポーズ/再開, 保存, マイパズル, ミスカウンタ, 設定, テーマ
 │   │   ├── HintPanel.tsx      # 論理ヒント（解法技法ポップオーバー内蔵）・全メモ・解答展開
-│   │   ├── ImportModal.tsx    # [新規] 画像選択 → 読み取り → プレビュー修正 → 開始
-│   │   ├── ImportPreviewGrid.tsx # [新規] 読み取り結果の編集可能プレビュー盤面
+│   │   ├── ImportModal.tsx    # 画像選択 → 読み取り → 難易度判定 → プレビュー修正 → 開始
+│   │   ├── ImportPreviewGrid.tsx # 読み取り結果の編集可能プレビュー盤面
+│   │   ├── MyPuzzlesModal.tsx # [新規] 保存済みパズル一覧・ロード・削除モーダル
 │   │   ├── Numpad.tsx         # ナンパッド（残り配置可能数バッジ付き）
 │   │   └── VictoryModal.tsx   # クリア祝賀モーダル
 │   ├── hooks/                 # React カスタムフック
 │   │   ├── useApiKey.ts       # API キーの localStorage 同期
-│   │   ├── useBoardScan.ts    # [新規] 読み取り状態管理 & Abort 管理
+│   │   ├── useBoardScan.ts    # 読み取り状態管理 & Abort 管理
 │   │   ├── useGeminiAdvice.ts # Gemini アドバイス要求 & Abort 管理
-│   │   ├── useSudokuGame.ts   # ゲームメインループ & キーバインド
+│   │   ├── useSavedPuzzles.ts # [新規] マイパズルの localStorage 保存・取得・削除
+│   │   ├── useSudokuGame.ts   # ゲームメインループ & キーバインド (+ ポーズ状態・ロード処理)
 │   │   ├── useTheme.ts        # ダークモード管理
-│   │   └── useTimer.ts        # ゲームタイマー計測
+│   │   └── useTimer.ts        # ゲームタイマー計測（一時停止・再開・初期秒数対応）
 │   ├── lib/
 │   │   ├── gemini/            # クライアント側 Gemini 通信ライブラリ
 │   │   │   ├── directClient.ts# REST API 直接呼び出し & プロンプト生成
 │   │   │   ├── hintClient.ts  # 通信方式の自動振り分けルーター
-│   │   │   ├── scanClient.ts  # [新規] 盤面読み取りの通信ルーター (Direct / Proxy)
-│   │   │   ├── scanPrompt.ts  # [新規] 読み取りプロンプト・JSON スキーマ・応答パーサ (クライアント/サーバー共用)
+│   │   │   ├── scanClient.ts  # 盤面読み取りの通信ルーター (Direct / Proxy)
+│   │   │   ├── scanPrompt.ts  # 読み取りプロンプト・JSON スキーマ・応答パーサ (クライアント/サーバー共用)
 │   │   │   └── types.ts       # Gemini 連携関連の型定義 (+ Scan 系の型)
 │   │   ├── image/
-│   │   │   └── preprocess.ts  # [新規] 画像の復号・回転補正・縮小・JPEG 化
+│   │   │   └── preprocess.ts  # 画像の復号・回転補正・縮小・JPEG 化
 │   │   └── sudoku/            # 数独コアロジック
 │   │       ├── board.ts       # 盤面コピー, 配置妥当性, ミスカウント
-│   │       ├── gameReducer.ts # ゲーム状態遷移 (Reducer) (+ IMPORT_PUZZLE)
-│   │       ├── generator.ts   # 唯一解保証パズル生成
+│   │       ├── difficultyClassifier.ts # [新規] 論理シミュレーションによる 5段階難易度自動判定
+│   │       ├── gameReducer.ts # ゲーム状態遷移 (Reducer) (+ LOAD_PUZZLE, TOGGLE_PAUSE)
+│   │       ├── generator.ts   # 5段階唯一解保証パズル生成
 │   │       ├── hints.ts       # 誤入力優先検知 & Naked/Hidden Single推論
-│   │       ├── importValidation.ts # [新規] 取り込み盤面の検証 (構造・重複・解の個数)
+│   │       ├── importValidation.ts # 取り込み盤面の検証 (構造・重複・解の個数・難易度判定)
+│   │       ├── savedPuzzles.ts# [新規] 保存パズルの型定義・バリデーション・シリアライザ
 │   │       ├── solver.ts      # MRV バックトラッキング解法 & 解数カウント
-│   │       └── types.ts       # 数独ドメインの型定義
+│   │       └── types.ts       # 数独ドメインの型定義 (5段階 Difficulty など)
 │   ├── App.tsx                # ルートコンポーネント
 │   └── main.tsx               # アプリケーションエントリポイント
 ```
@@ -129,53 +133,31 @@ sudoku-ai-app/
 ```ts
 export type Grid = number[][]          // 9x9 の数値配列 (0: 空マス, 1〜9: 配置数字)
 export type Notes = Set<number>[][]    // 9x9 の Set 配列 (候補数字の集合)
-export type Difficulty = 'easy' | 'medium' | 'hard'
+
+// 5段階難易度 (beginner, easy, medium, hard, expert)
+export type Difficulty = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
+export type PuzzleSource = 'generated' | 'imported'
 
 export interface Position {
   row: number // 0〜8
   col: number // 0〜8
 }
-
-// 共通ヒントインターフェース
-export interface BaseHint {
-  type: string
-  badge: string
-  row: number
-  col: number
-  reason: string
-}
-
-// 数字配置ヒント (正解数字を持つ)
-export interface PlacementHint extends BaseHint {
-  kind: 'placement'
-  num: number // 正解の数字 (1〜9)
-}
-
-// 誤入力修正ヒント (正解数字を持たず、現在の誤入力数字を持つ)
-export interface CorrectionHint extends BaseHint {
-  kind: 'correction'
-  currentNum: number // 現在誤って入力されている数字
-}
-
-// 判別可能 Union 型
-export type Hint = PlacementHint | CorrectionHint
 ```
 
 ### 3.2 ゲーム状態管理モデル ([`src/lib/sudoku/gameReducer.ts`](file:///c:/Users/takeo.satou/Documents/GA/sudoku-ai-app/src/lib/sudoku/gameReducer.ts))
 
 ```ts
-export type PuzzleSource = 'generated' | 'imported' // [新規] 問題の出自
-
 export interface GameState {
   gameId: number
   difficulty: Difficulty
-  source: PuzzleSource   // [新規] 'imported' の場合は難易度ではなく「取り込み問題」と表示
+  source: PuzzleSource   // 'generated' | 'imported'
   solution: Grid         // 完成盤面（正解データ）
   initial: Grid          // 初期問題盤面（編集不可手がかり）
   board: Grid            // 現在の盤面
   notes: Notes           // 現在の候補メモ
   selected: Position | null // 選択中マス
   noteMode: boolean      // メモ入力モード中か
+  isPaused: boolean      // [新規] 一時停止フラグ（真のとき盤面をすりガラス不可視化）
   history: Snapshot[]    // Undo 用履歴スタック（最大 30 手）
   mistakes: number       // ミス累計カウント (最大 3)
   activeHint: Hint | null// 現在ハイライト中のヒント
@@ -184,7 +166,10 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'NEW_GAME'; difficulty: Difficulty; solution: Grid; initial: Grid }
-  | { type: 'IMPORT_PUZZLE'; solution: Grid; initial: Grid } // [新規] 検証済み取り込み盤面で開始
+  | { type: 'IMPORT_PUZZLE'; difficulty: Difficulty; solution: Grid; initial: Grid } // [更新] 判定難易度を保持
+  | { type: 'LOAD_PUZZLE'; puzzle: LoadedPuzzlePayload } // [新規] 保存済みパズルの復元
+  | { type: 'TOGGLE_PAUSE' } // [新規] ポーズ切替
+  | { type: 'RESUME' }       // [新規] 明示的再開
   | { type: 'SELECT'; pos: Position }
   | { type: 'MOVE'; dRow: number; dCol: number }
   | { type: 'INPUT'; num: number }
@@ -197,9 +182,9 @@ export type GameAction =
   | { type: 'CHECK' }
 ```
 
-- `IMPORT_PUZZLE` は `NEW_GAME` と同じ初期化（`gameId` 加算、履歴・ミス・メモ・ヒントのリセット）を行い、`source: 'imported'` を設定する。`difficulty` は直前の値を保持する（難易度バーの次回生成用）。
-- Reducer は副作用を持たないため、解の算出（`solveSudoku`）と唯一解検証は呼び出し側（`ImportModal` → `validateImportedBoard`）で完了させてから dispatch する。
-- タイマーは `gameId` の変化でリセットされる既存の仕組みをそのまま利用する。
+- `isPaused` が真のとき、`Board` はマスの数字・メモを非表示にし、すりガラスオーバーレイと「再開する」ボタンを描画する。
+- 一時停止中、すべての編集系アクション（`INPUT`, `ERASE`, `UNDO`, `AUTO_NOTES`, `HINT`, `CHECK`）はガードされ状態を変更しない。
+- `LOAD_PUZZLE` は保存されていた途中盤面、メモ、ミス数、難易度、出どころを完全復元し、`gameId` をインクリメントする。タイマーフックは保存されていた経過秒数（`elapsedSeconds`）から再開する。
 
 ### 3.3 盤面取り込み関連の型 ([`src/lib/gemini/types.ts`](file:///c:/Users/takeo.satou/Documents/GA/sudoku-ai-app/src/lib/gemini/types.ts), `importValidation.ts`) [新規]
 
@@ -231,13 +216,50 @@ export type BoardScanErrorCode =
   | 'ABORTED'           // ユーザーキャンセル (UI には表示しない)
   | 'UPSTREAM_ERROR'
 
-// 取り込み盤面の検証結果
+// 難易度自動判定結果 [新規]
+export interface DifficultyGradingResult {
+  difficulty: Difficulty
+  label: string            // 例: "上級"
+  highestTechnique: string // 例: "同盟ペア (Naked Pair)"
+  reason: string           // 例: "解く過程で同盟ペア技法による候補除外が必要な局面を含みます"
+  clues: number
+}
+
+// 取り込み盤面の検証結果 (難易度判定付きに拡張)
 export type ImportValidation =
-  | { status: 'ok'; solution: Grid; clues: number }
+  | { status: 'ok'; solution: Grid; clues: number; grading: DifficultyGradingResult }
   | { status: 'invalid-shape' }
   | { status: 'conflict'; cells: Position[]; clues: number } // 重複マス
   | { status: 'no-solution'; clues: number }
   | { status: 'multiple-solutions'; clues: number }
+
+// マイパズル保存データモデル [新規]
+export interface SavedPuzzle {
+  id: string              // UUID またはタイムスタンプID
+  title: string           // ユーザー設定または自動命名タイトル
+  createdAt: string       // ISO 8601 タイムスタンプ
+  updatedAt: string
+  difficulty: Difficulty
+  source: PuzzleSource    // 'generated' | 'imported'
+  initial: Grid           // 初期出題盤面
+  solution: Grid          // 正解データ
+  currentBoard: Grid      // 保存時の盤面状態
+  currentNotes: number[][][] // 保存時のメモ状態（Set配列の直列化）
+  elapsedSeconds: number  // 保存時の経過秒数
+  mistakes: number        // 保存時のミス回数
+  isCompleted: boolean    // クリア済みフラグ
+}
+
+export interface LoadedPuzzlePayload {
+  difficulty: Difficulty
+  source: PuzzleSource
+  initial: Grid
+  solution: Grid
+  board: Grid
+  notes: Notes
+  elapsedSeconds: number
+  mistakes: number
+}
 ```
 
 ---
@@ -425,7 +447,7 @@ sequenceDiagram
 - スキーマ指定の有無にかかわらず、`parseScanResponse` で **9x9・整数・0〜9・座標範囲** を必ず再検証する（スキーマを満たさない応答は `INVALID_RESPONSE`）。
 - 構造化出力のパラメータ名（`responseJsonSchema` / `responseSchema`）は実装時に公式ドキュメントで最終確認する。
 
-#### 4.4.4 取り込み盤面の検証 (`importValidation.ts`)
+#### 4.4.4 取り込み盤面の検証 & 難易度判定 (`importValidation.ts`)
 
 ```mermaid
 flowchart TD
@@ -437,31 +459,80 @@ flowchart TD
     Count -- "0" --> R3["no-solution"]
     Count -- "2" --> R4["multiple-solutions"]
     Count -- "1" --> Solve["cloneGrid して solveSudoku で解を算出"]
-    Solve --> R5["ok: solution, clues"]
+    Solve --> Grade["gradePuzzleDifficulty(grid, solution) で難易度自動判定"]
+    Grade --> R5["ok: solution, clues, grading"]
 ```
 
 - 重複マスの特定は `isBoardValid` の真偽だけでは足りないため、行・列・ブロック単位で重複している座標を収集する補助関数を追加する。
 - `countSolutions` は入力を変更しない既存実装を利用し、`solveSudoku` には複製を渡す。
+- 解が唯一と確認された盤面に対してのみ、`gradePuzzleDifficulty` を呼び出して 5 段階難易度・最大必要技法・判定理由を算定し、`ok` ステータスに含めて返す（実行時間は 5ms 未満）。
 - 手がかり数 `clues` は全ステータスで返し、17 未満の場合は UI で補足を表示する（ゲーム開始可否の判定には使わない）。
 
-#### 4.4.5 エラー表示方針
+### 4.5 難易度判定シミュレーションアルゴリズム (`difficultyClassifier.ts`) [新規]
 
-| コード | 表示メッセージ（要旨） | ユーザーの次の操作 |
-|---|---|---|
-| `NO_API_KEY` | 画像の読み取りには Gemini API キーの設定が必要です。 | 「API キーを設定」ボタンで設定モーダルへ |
-| `OFFLINE` | 画像の読み取りにはインターネット接続が必要です。 | 接続後に再試行 |
-| `UNSUPPORTED_IMAGE` | この画像形式は読み込めません。JPEG または PNG を選択してください。 | 画像を選び直す |
-| `IMAGE_TOO_LARGE` | 画像サイズが大きすぎます。 | 画像を選び直す |
-| `NOT_FOUND` | 画像から数独の盤面が見つかりませんでした。盤面全体が写るように撮影してください。 | 画像を選び直す |
-| `INVALID_RESPONSE` | 読み取り結果を解釈できませんでした。 | 再試行 |
-| `AUTH` | API キーが無効です。 | API キー設定へ |
-| `QUOTA` | 利用上限に達しました。しばらく待ってから再試行してください。 | 時間をおいて再試行 |
-| `TIMEOUT` / `NETWORK` / `UPSTREAM_ERROR` | 通信に失敗しました。 | 再試行 |
-| `ABORTED` | （表示しない） | — |
+取り込み盤面および生成パズルの難易度を、LLM 呼び出しを行わず決定論的なルールベース解法シミュレーションにより数ミリ秒で判定する。
+
+```mermaid
+flowchart TD
+    Start(["gradePuzzleDifficulty(initialGrid, solution)"]) --> Init["作業用盤面と候補集合を作成<br/>highestTechnique = 'naked-single'"]
+    Init --> Loop{"盤面に空きマスがあるか？"}
+    Loop -- "空きマスなし (完成)" --> MapLevel["最高到達技法 & 手がかり数から<br/>5段階難易度を決定"]
+    Loop -- "空きマスあり" --> T1{"Naked Single<br/>(候補が1個のマス)"}
+    
+    T1 -- "あり" --> Apply1["マスを確定し候補更新<br/>(最高技法は更新せずループ)"] --> Loop
+    T1 -- "なし" --> T2{"Hidden Single (Block/Row/Col)<br/>(ユニット内で候補が1箇所)"}
+    
+    T2 -- "あり" --> Apply2["マスを確定し候補更新<br/>highestTechnique = max(highest, 'hidden-single')"] --> Loop
+    T2 -- "なし" --> T3{"Naked Pair / Hidden Pair<br/>(同盟ペア / 隠れペア)"}
+    
+    T3 -- "あり" --> Apply3["候補を除外<br/>highestTechnique = max(highest, 'pairs')"] --> Loop
+    T3 -- "なし" --> T4{"Pointing / Claiming<br/>(交差排除)"}
+    
+    T4 -- "あり" --> Apply4["候補を除外<br/>highestTechnique = max(highest, 'intersections')"] --> Loop
+    T4 -- "なし" --> T5["上記論理技法で進展なし<br/>highestTechnique = 'advanced-or-trial'"]
+    T5 --> MapLevel
+    MapLevel --> Result(["DifficultyGradingResult を返却<br/>- difficulty (5段階)<br/>- label<br/>- highestTechnique<br/>- reason<br/>- clues"])
+```
+
+#### 難易度マッピング規則
+
+| 到達最高技法 | 手がかり数 | 判定難易度 (`Difficulty`) | 表示名 | 判定理由 (`reason`) 例 |
+|---|---|---|---|---|
+| Naked Single のみで完答 | 40以上 | `beginner` | 入門 | 基本のマス確定（確定候補）のみで最後まで解ける初歩的なパズルです |
+| Naked Single のみで完答 | 39以下 | `easy` | 初級 | 確定候補を中心に素直に進められる入門〜初級レベルです |
+| Hidden Single を要する | 32以上 | `easy` | 初級 | 行・列・ブロック内の隠れ一択（単数候補）を見つけることで解けます |
+| Hidden Single を要する | 31以下 | `medium` | 中級 | 各列やブロック全体を広く見渡す探索が必要な標準的な難易度です |
+| Pairs / Intersections を要する | — | `hard` | 上級 | 同盟ペア（2国同盟）や交差排除による候補の絞り込みが必要です |
+| 高度技法 (X-Wing 等) または仮定法を要する | — | `expert` | エキスパート | 高度な論理鎖や仮定法（背理探索）を要する最高難度のパズルです |
+
+- 処理時間は 1 パズルあたり平均 1〜3ms、最悪でも 5ms 未満。
+- `importValidation` において一意解が確認された直後に実行され、結果が検証サマリーおよび開始時の初期難易度として活用される。
+
+### 4.6 マイパズル保存 & 直列化設計 (`savedPuzzles.ts`, `useSavedPuzzles.ts`) [新規]
+
+#### 4.6.1 ストレージ仕様
+- キー名: `sudoku_saved_puzzles_v1`
+- 保存容量: 最大 50 件（上限超過時は最古の「完了済みパズル」を優先削除。完了済みがなければ最古の作成日パズルを削除）。
+- ブラウザ `localStorage` は同期アクセスであるため、不正データや破損 JSON に対してスキーマ検証を行い、破損データは除外して安全に読み出す。
+
+#### 4.6.2 メモ (`Notes`) の直列化 / 逆直列化
+`GameState` 内の `notes: Notes` は `Set<number>[9][9]` の 2 次元配列である。JSON では `Set` をそのまま保持できないため、以下のように相互変換する。
+
+- **直列化 (`serializeNotes`)**: 各マスを `Array.from(set).sort()` により昇順数値配列化し、`number[][][]` とする。
+- **逆直列化 (`deserializeNotes`)**: 各配列要素を `new Set<number>(arr)` に変換し、元の `Notes` 構造を完全復元する。
+
+#### 4.6.3 保存データ整合性検証 (`validateSavedPuzzle`)
+`localStorage` から読み込んだ各要素が以下の条件を満たしているかを検証し、不適合なデータは破棄する:
+1. `id`, `title`, `createdAt`, `updatedAt` が非空文字列。
+2. `difficulty` が `'beginner' | 'easy' | 'medium' | 'hard' | 'expert'` のいずれか。
+3. `initial`, `solution`, `currentBoard` がすべて 9x9 かつ 0〜9 の整数配列。
+4. `currentNotes` が 9x9 の配列構造。
+5. `elapsedSeconds >= 0`, `mistakes >= 0`。
 
 ---
 
 ## 5. 状態管理 & ライフサイクル設計
+
 
 ### 5.1 `useGeminiAdvice` フックのライフサイクル制御
 
@@ -532,6 +603,30 @@ stateDiagram-v2
 - 進行中のゲームがある場合（`board` が `initial` と異なる）は、「この盤面で開始」押下時に確認ダイアログを表示する。モーダルを途中で閉じた場合、現在のゲームとタイマーには影響を与えない。
 - モバイル（縦画面）では全画面シート、デスクトップでは中央ダイアログとして表示する。
 
+### 5.4 タイマー一時停止 & アンチチート表示設計 [新規]
+
+#### 5.4.1 ポーズ中のライフサイクルと状態同期
+- ヘッダー右上に「一時停止 / 再開」切り替えボタン（アイコン + テキスト）を配置。
+- `GameState` に `isPaused: boolean` を追加。
+- `isPaused` が真のとき:
+  1. `useTimer` のインターバル更新を停止（経過秒数の加算停止）。
+  2. ゲーム盤面（`Board.tsx`）全体を `backdrop-blur-md` のすりガラスオーバーレイで覆い、数字・メモ・ハイライトを完全に不可視化（アンチチート保証）。
+  3. 盤面中央に「一時停止中」のバッジと大型「再開する」ボタンを描画。
+  4. キーボードショートカット（数字キー、矢印キー、Backspace、z 等）を完全無効化。
+  5. アクションバー（メモ切替、消去、ヒント、自動メモ、AI相談）の各ボタンを `disabled` に設定。
+- 再開時は「再開する」ボタンのタップ、またはヘッダーのポーズボタン押下により `isPaused` を false に戻し、タイマーと盤面表示を直前の状態から再開する。
+- 勝利時（ゲームクリア）またはミス上限到達時は、自動的にポーズを解除しタイマーを最終停止する。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Playing: NEW_GAME / LOAD_PUZZLE
+    Playing --> Paused: TOGGLE_PAUSE
+    Paused --> Playing: TOGGLE_PAUSE / RESUME
+    Playing --> Completed: クリア達成 (isSolved)
+    Paused --> Completed: (発生しない)
+    Completed --> [*]
+```
+
 ---
 
 ## 6. テスト設計
@@ -540,39 +635,52 @@ stateDiagram-v2
 Vitest による高速・高カバレッジな自動テストを構築。DOM 非依存で実行可能な設計とし、CI/CD やローカル環境で即座に検証可能とする。
 
 ### 6.2 主なテストスイート
-1. **`sudoku.test.ts` (数独コア & アルゴリズム)**:
+1. **`sudoku.test.ts` (数独コア & 5段階生成アルゴリズム)**:
    - `isValidPlacement`, `isSolved`, `countMistakes`, `countRemaining`, `cleanPeerNotes` の正確性
    - `countSolutions` の盤面不変保証、解0件（矛盾・重複）、解1件（一意）、解2件（複数解上限）の正確性
+   - 5段階難易度（`beginner`, `easy`, `medium`, `hard`, `expert`）それぞれの手がかり数範囲・唯一解の厳密検証
    - 再現可能シード（Mulberry32 PRNG）を用いた **各難易度 100問連続生成バッチテスト**（複数解発生率 0/100 の検証、生成時間の統計計測）
    - `findSmartAIHint` の誤入力優先検知（`CorrectionHint` と `PlacementHint` の分離、全マス埋まり誤入力、修正後の復帰）
-2. **`useGeminiAdvice.test.ts` (フック状態・非同期・Abort 制御)**:
+2. **`difficultyClassifier.test.ts` (難易度自動判定シミュレータ)** [新規]:
+   - 典型的な入門〜エキスパート問題に対するシミュレーション結果（判定難易度、最高到達技法名、理由）の妥当性
+   - 不正な盤面や解なし盤面での安全なハンドリング
+   - 処理時間が 5ms 以内であることのベンチマーク
+3. **`savedPuzzles.test.ts` (マイパズル保存 & 直列化)** [新規]:
+   - `serializeNotes` と `deserializeNotes` の完全な可逆性（Set 構造の復元）
+   - 不正な JSON や欠落プロパティを含む localStorage データの安全なフィルタリング・除外
+   - 上限（50件）超過時に完了済みパズル・最古パズルが正しくローテーション削除されること
+4. **`gameReducer.test.ts` (状態遷移 & ポーズ & ロード)** [更新]:
+   - `TOGGLE_PAUSE` および `RESUME` での `isPaused` フラグ切り替え
+   - ポーズ中の編集アクション（`INPUT`, `ERASE`, `UNDO`, `AUTO_NOTES`, `HINT`, `CHECK`）が無視されること
+   - `LOAD_PUZZLE` で盤面・メモ・難易度・ミス回数・経過秒数が完全復元され `gameId` が更新されること
+   - `IMPORT_PUZZLE` で判定済み難易度（5段階）が保持され初期化されること
+5. **`useGeminiAdvice.test.ts` (フック状態・非同期・Abort 制御)**:
    - 再読み込みなしでの `apiKey` の動的反映
    - 通信中にキーを変更・削除した際のリクエスト即時中断、`idle` 復帰、遅延結果の非表示
-3. **`prompt.test.ts` (プロンプト生成 & 通信経路整合)**:
+6. **`prompt.test.ts` (プロンプト生成 & 通信経路整合)**:
    - Direct クライアントと Server プラグインにおける正常時および誤入力時のプロンプト出力
    - ヒントレベル 1〜4 各段階での指示文の完全一致
-4. **`importValidation.test.ts` (取り込み盤面の検証)** [新規]:
+7. **`importValidation.test.ts` (取り込み盤面の検証 & 難易度判定)** [更新]:
    - 9x9 でない・値域外・非整数の盤面が `invalid-shape` になること
    - 重複のある盤面が `conflict` となり、重複マスの座標が過不足なく返ること
-   - 既知の唯一解盤面が `ok` となり、返却された `solution` が完成盤面かつ手がかりと一致すること
+   - 既知の唯一解盤面が `ok` となり、返却された `solution` が完成盤面かつ手がかりと一致し、`grading` に適切な難易度結果が含まれること
    - 解が0個・複数の既知盤面がそれぞれ `no-solution` / `multiple-solutions` になること
    - 入力盤面を変更しないこと、1 回の検証が 50 ms 以内であること
-5. **`scanPrompt.test.ts` (応答パーサ & 通信経路整合)** [新規]:
+8. **`scanPrompt.test.ts` (応答パーサ & 通信経路整合)**:
    - 正常 JSON、`found: false`、9 行未満・10 列・文字列混入・範囲外座標を含む応答の判定
    - クライアントとサーバーが同一のプロンプト・スキーマを使用していること
    - REST リクエストボディに `inline_data`（`image/jpeg`）と `responseMimeType: application/json` が含まれること
-6. **`useBoardScan.test.ts` (フック状態・Abort 制御)** [新規]:
+9. **`useBoardScan.test.ts` (フック状態・Abort 制御)**:
    - 通信をモックし、実際に渡された API キーと画像データを確認
    - キャンセル・モーダルクローズ・キー変更時の即時中断と、遅延応答の非表示
    - 本番モードでキー未設定時に通信せず `NO_API_KEY` となること
    - HTTP 401/403/429・タイムアウト時のエラーコード変換
-7. **`gameReducer` の `IMPORT_PUZZLE`** [新規]（`sudoku.test.ts` に追加）:
-   - `source: 'imported'`、初期盤面のロック、履歴・ミス・メモ・ヒントのリセット、`gameId` の加算
-   - 取り込み後に誤入力リセット・論理ヒント・クリア判定が通常どおり動作すること
 
-### 6.3 手動確認項目（画像取り込み）[新規]
-- iPhone（Safari / ホーム画面 PWA）で、写真ライブラリからの選択とカメラ撮影の両方で取り込めること。
-- 新聞・雑誌の撮影画像、Web 上の数独のスクリーンショット、斜めに撮影した画像、手書きの書き込みがある画像での読み取り結果。
-- ダークモードでのプレビュー盤面の視認性（自信なしマス・重複マスの色分け）。
-- 取り込み後のプレイ、Gemini コーチ、勝利モーダルの「取り込み問題」表示。
-- 最終確認として `npm test`、`npm run build` に加え、Vercel のプレビュー環境で動作確認を行う。
+### 6.3 手動確認項目
+- 5段階難易度セレクターの切り替え、各難易度でのパズル生成速度とプレイ感。
+- 一時停止時に盤面が完全に不可視化され、メモや数字が見えないこと、ショートカットが効かないこと、再開時にタイマーがスムーズに復帰すること。
+- 画像取り込み時、盤面プレビューで自動判定された難易度バッジ・理由が表示され、その難易度でゲームが開始されること。
+- マイパズル保存モーダルで現在の途中状態が保存され、一覧から「再開」「最初からやり直す」「削除」が正確に動作すること。
+- iPhone / Android 実機およびダークモードでの表示確認。
+- 最終確認として `npm test`、`npm run build` を実行。
+
