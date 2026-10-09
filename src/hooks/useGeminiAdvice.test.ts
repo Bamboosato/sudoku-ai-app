@@ -15,6 +15,7 @@ const dummyGame: GameState = {
   notes: createEmptyNotes(),
   selected: null,
   noteMode: false,
+  isPaused: false,
   history: [],
   mistakes: 0,
   activeHint: null,

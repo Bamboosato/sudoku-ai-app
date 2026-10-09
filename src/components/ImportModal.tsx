@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBoardScan } from '../hooks/useBoardScan'
 import { validateImportedBoard, type ImportValidation } from '../lib/sudoku/importValidation'
-import type { Grid, Position } from '../lib/sudoku/types'
+import type { Difficulty, Grid, Position } from '../lib/sudoku/types'
 import ImportPreviewGrid from './ImportPreviewGrid'
 
 interface ImportModalProps {
@@ -10,7 +10,7 @@ interface ImportModalProps {
   hasUnsavedGame: boolean
   onClose: () => void
   onOpenSettings: () => void
-  onImport: (initial: Grid, solution: Grid) => void
+  onImport: (initial: Grid, solution: Grid, difficulty: Difficulty) => void
 }
 
 export default function ImportModal({
@@ -104,7 +104,7 @@ export default function ImportModal({
   const commitImport = () => {
     if (validation.status !== 'ok') return
     const initial = editableGrid.map((row) => [...row])
-    onImport(initial, validation.solution)
+    onImport(initial, validation.solution, validation.grading.difficulty)
     onClose()
   }
 
@@ -310,14 +310,24 @@ export default function ImportModal({
               {/* Validation Status Banner */}
               <div className="pt-1">
                 {validation.status === 'ok' && (
-                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
-                    <i className="fa-solid fa-circle-check text-emerald-500 text-base"></i>
-                    <div>
-                      <p className="font-bold">盤面チェック完了！唯一解が確認されました</p>
-                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
-                        手がかり数字: {validation.clues} マス
+                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <i className="fa-solid fa-circle-check text-emerald-500 text-base"></i>
+                        <span className="font-bold">盤面チェック完了！唯一解が確認されました</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-sm">
+                        難易度: {validation.grading.label}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-700 dark:text-emerald-300 space-y-0.5 pl-6">
+                      <p>
+                        <span className="font-semibold">手がかり:</span> {validation.clues} マス
                         {validation.clues < 17 && ' (手がかりが少なめです)'}
+                        <span className="mx-1.5 opacity-60">|</span>
+                        <span className="font-semibold">必要技法:</span> {validation.grading.highestTechnique}
                       </p>
+                      <p className="opacity-90">{validation.grading.reason}</p>
                     </div>
                   </div>
                 )}

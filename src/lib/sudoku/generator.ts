@@ -3,16 +3,24 @@ import { countSolutions, solveSudoku } from './solver'
 import type { Difficulty, Grid } from './types'
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: '簡単',
-  medium: '普通',
-  hard: '難問',
+  beginner: '入門',
+  easy: '初級',
+  medium: '中級',
+  hard: '上級',
+  expert: 'エキスパート',
 }
 
-// Easy: ~39 clues remain, Medium: ~31 clues, Hard: ~25 clues
+// Beginner: 42-45 clues (remove 36-39)
+// Easy: 36-38 clues (remove 43-45)
+// Medium: 30-32 clues (remove 49-51)
+// Hard: 25-27 clues (remove 54-56)
+// Expert: 22-24 clues (remove 57-59)
 const CELLS_TO_REMOVE: Record<Difficulty, number> = {
-  easy: 42,
+  beginner: 37,
+  easy: 44,
   medium: 50,
-  hard: 56,
+  hard: 55,
+  expert: 58,
 }
 
 export interface Puzzle {

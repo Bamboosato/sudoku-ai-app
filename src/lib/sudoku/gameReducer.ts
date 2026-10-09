@@ -7,6 +7,7 @@ import {
 import { generatePuzzle } from './generator'
 import { findSmartAIHint } from './hints'
 import { computeCellCandidates } from './solver'
+import type { LoadedPuzzlePayload } from './savedPuzzles'
 import type { Difficulty, Grid, Hint, Notes, Position } from './types'
 
 export const MAX_MISTAKES = 3
@@ -40,6 +41,7 @@ export interface GameState {
   notes: Notes
   selected: Position | null
   noteMode: boolean
+  isPaused: boolean
   history: Snapshot[]
   mistakes: number
   activeHint: Hint | null
@@ -48,7 +50,10 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'NEW_GAME'; difficulty: Difficulty; solution: Grid; initial: Grid }
-  | { type: 'IMPORT_PUZZLE'; solution: Grid; initial: Grid }
+  | { type: 'IMPORT_PUZZLE'; difficulty: Difficulty; solution: Grid; initial: Grid }
+  | { type: 'LOAD_PUZZLE'; puzzle: LoadedPuzzlePayload }
+  | { type: 'TOGGLE_PAUSE' }
+  | { type: 'RESUME' }
   | { type: 'SELECT'; pos: Position }
   | { type: 'MOVE'; dRow: number; dCol: number }
   | { type: 'INPUT'; num: number }
@@ -88,6 +93,7 @@ function newGameState(
     notes: createEmptyNotes(),
     selected: null,
     noteMode: false,
+    isPaused: false,
     history: [],
     mistakes: 0,
     activeHint: null,
@@ -105,12 +111,44 @@ function withSnapshot(state: GameState): Snapshot[] {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  // Global pause guard for mutations
+  const editingActions = ['INPUT', 'ERASE', 'UNDO', 'TOGGLE_NOTE_MODE', 'HINT', 'AUTO_NOTES', 'SOLVE_ALL', 'CHECK', 'SELECT', 'MOVE']
+  if (state.isPaused && editingActions.includes(action.type)) {
+    return state
+  }
+
   switch (action.type) {
     case 'NEW_GAME':
       return newGameState(state.gameId + 1, action.difficulty, action.solution, action.initial, 'generated')
 
     case 'IMPORT_PUZZLE':
-      return newGameState(state.gameId + 1, state.difficulty, action.solution, action.initial, 'imported')
+      return newGameState(state.gameId + 1, action.difficulty, action.solution, action.initial, 'imported')
+
+    case 'LOAD_PUZZLE': {
+      const { puzzle } = action
+      return {
+        gameId: state.gameId + 1,
+        difficulty: puzzle.difficulty,
+        source: puzzle.source,
+        solution: cloneGrid(puzzle.solution),
+        initial: cloneGrid(puzzle.initial),
+        board: cloneGrid(puzzle.board),
+        notes: cloneNotes(puzzle.notes),
+        selected: null,
+        noteMode: false,
+        isPaused: false,
+        history: [],
+        mistakes: puzzle.mistakes,
+        activeHint: null,
+        hintPanel: IDLE_HINT_PANEL,
+      }
+    }
+
+    case 'TOGGLE_PAUSE':
+      return { ...state, isPaused: !state.isPaused, selected: null, activeHint: null }
+
+    case 'RESUME':
+      return { ...state, isPaused: false }
 
     case 'SELECT':
       return { ...state, selected: action.pos }
