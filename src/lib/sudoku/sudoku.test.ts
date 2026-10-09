@@ -415,6 +415,53 @@ describe('gameReducer action mechanics (no instant spoiler & mistake reset)', ()
     expect(state.mistakes).toBe(0)
     expect(state.hintPanel.badge).toBe('診断正常')
   })
+
+  it('handles IMPORT_PUZZLE correctly: locks initial clues, resets mistakes and history, marks source as imported', () => {
+    let state = createGameState('easy')
+    const prevGameId = state.gameId
+
+    // Make some moves and errors
+    state = gameReducer(state, { type: 'INPUT', num: 1 })
+    state = { ...state, mistakes: 2 }
+
+    const { initial: importedInitial, solution: importedSolution } = generatePuzzle('medium')
+    state = gameReducer(state, {
+      type: 'IMPORT_PUZZLE',
+      initial: importedInitial,
+      solution: importedSolution,
+    })
+
+    expect(state.gameId).toBe(prevGameId + 1)
+    expect(state.source).toBe('imported')
+    expect(state.initial).toEqual(importedInitial)
+    expect(state.solution).toEqual(importedSolution)
+    expect(state.board).toEqual(importedInitial)
+    expect(state.mistakes).toBe(0)
+    expect(state.history).toEqual([])
+    expect(state.selected).toBeNull()
+
+    // Ensure initial clues cannot be overwritten
+    let firstClueR = -1
+    let firstClueC = -1
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (importedInitial[r][c] !== 0) {
+          firstClueR = r
+          firstClueC = c
+          break
+        }
+      }
+      if (firstClueR !== -1) break
+    }
+
+    state = gameReducer(state, { type: 'SELECT', pos: { row: firstClueR, col: firstClueC } })
+    const clueVal = importedInitial[firstClueR][firstClueC]
+    const otherVal = (clueVal % 9) + 1
+    state = gameReducer(state, { type: 'INPUT', num: otherVal })
+    // Should NOT change
+    expect(state.board[firstClueR][firstClueC]).toBe(clueVal)
+  })
 })
+
 
 

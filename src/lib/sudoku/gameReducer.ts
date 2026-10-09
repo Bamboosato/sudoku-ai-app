@@ -28,9 +28,12 @@ interface Snapshot {
   mistakes: number
 }
 
+export type PuzzleSource = 'generated' | 'imported'
+
 export interface GameState {
   gameId: number
   difficulty: Difficulty
+  source: PuzzleSource
   solution: Grid
   initial: Grid
   board: Grid
@@ -45,6 +48,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'NEW_GAME'; difficulty: Difficulty; solution: Grid; initial: Grid }
+  | { type: 'IMPORT_PUZZLE'; solution: Grid; initial: Grid }
   | { type: 'SELECT'; pos: Position }
   | { type: 'MOVE'; dRow: number; dCol: number }
   | { type: 'INPUT'; num: number }
@@ -64,7 +68,7 @@ export const IDLE_HINT_PANEL: HintPanelState = {
 
 export function createGameState(difficulty: Difficulty, gameId = 0): GameState {
   const { solution, initial } = generatePuzzle(difficulty)
-  return newGameState(gameId, difficulty, solution, initial)
+  return newGameState(gameId, difficulty, solution, initial, 'generated')
 }
 
 function newGameState(
@@ -72,10 +76,12 @@ function newGameState(
   difficulty: Difficulty,
   solution: Grid,
   initial: Grid,
+  source: PuzzleSource = 'generated',
 ): GameState {
   return {
     gameId,
     difficulty,
+    source,
     solution,
     initial,
     board: cloneGrid(initial),
@@ -101,7 +107,10 @@ function withSnapshot(state: GameState): Snapshot[] {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'NEW_GAME':
-      return newGameState(state.gameId + 1, action.difficulty, action.solution, action.initial)
+      return newGameState(state.gameId + 1, action.difficulty, action.solution, action.initial, 'generated')
+
+    case 'IMPORT_PUZZLE':
+      return newGameState(state.gameId + 1, state.difficulty, action.solution, action.initial, 'imported')
 
     case 'SELECT':
       return { ...state, selected: action.pos }

@@ -35,3 +35,34 @@ export type GeminiHintClientErrorCode =
   | 'TIMEOUT'
   | 'ABORTED'
   | 'UNKNOWN'
+
+export interface BoardScanRequest {
+  imageBase64: string
+  mimeType: 'image/jpeg'
+}
+
+export interface CellCoord {
+  row: number
+  col: number
+}
+
+export interface BoardScanResponse {
+  found: boolean
+  grid: number[][]
+  uncertainCells: CellCoord[]
+}
+
+export type BoardScanErrorCode =
+  | 'NO_API_KEY'
+  | 'OFFLINE'
+  | 'UNSUPPORTED_IMAGE'
+  | 'IMAGE_TOO_LARGE'
+  | 'NOT_FOUND'
+  | 'INVALID_RESPONSE'
+  | 'AUTH'
+  | 'QUOTA'
+  | 'TIMEOUT'
+  | 'NETWORK'
+  | 'ABORTED'
+  | 'UPSTREAM_ERROR'
+

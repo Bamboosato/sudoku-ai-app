@@ -8,7 +8,7 @@ import {
   generatePuzzle,
   isSolved,
 } from '../lib/sudoku'
-import type { Difficulty, Position } from '../lib/sudoku'
+import type { Difficulty, Grid, Position } from '../lib/sudoku'
 import { useTimer } from './useTimer'
 
 export function useSudokuGame() {
@@ -26,6 +26,10 @@ export function useSudokuGame() {
   const newGame = useCallback((difficulty: Difficulty) => {
     const { solution, initial } = generatePuzzle(difficulty)
     dispatch({ type: 'NEW_GAME', difficulty, solution, initial })
+  }, [])
+
+  const importPuzzle = useCallback((initial: Grid, solution: Grid) => {
+    dispatch({ type: 'IMPORT_PUZZLE', initial, solution })
   }, [])
 
   const actions = useMemo(
@@ -62,5 +66,5 @@ export function useSudokuGame() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [hasSelection, actions])
 
-  return { state, won, gameOver, seconds, remaining, newGame, actions }
+  return { state, won, gameOver, seconds, remaining, newGame, importPuzzle, actions }
 }

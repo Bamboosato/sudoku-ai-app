@@ -8,6 +8,7 @@ import { IDLE_HINT_PANEL } from '../lib/sudoku/gameReducer'
 const dummyGame: GameState = {
   gameId: 1,
   difficulty: 'easy',
+  source: 'generated',
   solution: createEmptyGrid(),
   initial: createEmptyGrid(),
   board: createEmptyGrid(),
