@@ -59,7 +59,6 @@ export default function HintPanel({
     <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-brand-500"></span>
           <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <i className="fa-regular fa-lightbulb text-brand-500"></i> 論理ヒント
           </h2>
