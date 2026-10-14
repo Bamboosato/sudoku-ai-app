@@ -18,7 +18,8 @@ export type BadgeTone = 'default' | 'amber' | 'rose'
 export interface HintPanelState {
   badge: string
   tone: BadgeTone
-  /** Plain text message (used when `hint` is undefined) */
+  step: 0 | 1 | 2
+  /** Plain text message (used when `hint` is undefined or for step message) */
   text?: string
   hint?: Hint
 }
@@ -45,6 +46,7 @@ export interface GameState {
   history: Snapshot[]
   mistakes: number
   activeHint: Hint | null
+  hintStep: 0 | 1 | 2
   hintPanel: HintPanelState
 }
 
@@ -61,14 +63,17 @@ export type GameAction =
   | { type: 'UNDO' }
   | { type: 'TOGGLE_NOTE_MODE' }
   | { type: 'HINT' }
+  | { type: 'HINT_NEXT' }
+  | { type: 'HINT_CLOSE' }
   | { type: 'AUTO_NOTES' }
   | { type: 'SOLVE_ALL' }
   | { type: 'CHECK' }
 
 export const IDLE_HINT_PANEL: HintPanelState = {
-  badge: '待機中',
+  badge: 'ヒント',
   tone: 'default',
-  text: '「次の一手と論理解説」を押すと、盤面全体の数字と候補を論理的にスキャンして次に解くべきマスと論理的理由を解説します。',
+  step: 0,
+  text: '行き詰まったときは「ヒントを見る」を押すと、次に注目すべきエリアを案内します。',
 }
 
 export function createGameState(difficulty: Difficulty, gameId = 0): GameState {
@@ -97,6 +102,7 @@ function newGameState(
     history: [],
     mistakes: 0,
     activeHint: null,
+    hintStep: 0,
     hintPanel: IDLE_HINT_PANEL,
   }
 }
@@ -112,7 +118,20 @@ function withSnapshot(state: GameState): Snapshot[] {
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   // Global pause guard for mutations
-  const editingActions = ['INPUT', 'ERASE', 'UNDO', 'TOGGLE_NOTE_MODE', 'HINT', 'AUTO_NOTES', 'SOLVE_ALL', 'CHECK', 'SELECT', 'MOVE']
+  const editingActions = [
+    'INPUT',
+    'ERASE',
+    'UNDO',
+    'TOGGLE_NOTE_MODE',
+    'HINT',
+    'HINT_NEXT',
+    'HINT_CLOSE',
+    'AUTO_NOTES',
+    'SOLVE_ALL',
+    'CHECK',
+    'SELECT',
+    'MOVE',
+  ]
   if (state.isPaused && editingActions.includes(action.type)) {
     return state
   }
@@ -140,12 +159,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         history: [],
         mistakes: puzzle.mistakes,
         activeHint: null,
+        hintStep: 0,
         hintPanel: IDLE_HINT_PANEL,
       }
     }
 
     case 'TOGGLE_PAUSE':
-      return { ...state, isPaused: !state.isPaused, selected: null, activeHint: null }
+      return { ...state, isPaused: !state.isPaused, selected: null, activeHint: null, hintStep: 0 }
 
     case 'RESUME':
       return { ...state, isPaused: false }
@@ -184,7 +204,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       notes[row][col].clear()
       cleanPeerNotes(notes, row, col, num)
 
-      return { ...state, history, board, notes, activeHint: null }
+      return {
+        ...state,
+        history,
+        board,
+        notes,
+        activeHint: null,
+        hintStep: 0,
+        hintPanel: state.activeHint ? IDLE_HINT_PANEL : state.hintPanel,
+      }
     }
 
     case 'ERASE': {
@@ -198,14 +226,31 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const notes = cloneNotes(state.notes)
       board[row][col] = 0
       notes[row][col].clear()
-      return { ...state, history, board, notes }
+      return {
+        ...state,
+        history,
+        board,
+        notes,
+        activeHint: null,
+        hintStep: 0,
+        hintPanel: state.activeHint ? IDLE_HINT_PANEL : state.hintPanel,
+      }
     }
 
     case 'UNDO': {
       if (state.history.length === 0) return state
       const history = state.history.slice(0, -1)
       const prev = state.history[state.history.length - 1]
-      return { ...state, history, board: prev.board, notes: prev.notes, mistakes: prev.mistakes }
+      return {
+        ...state,
+        history,
+        board: prev.board,
+        notes: prev.notes,
+        mistakes: prev.mistakes,
+        activeHint: null,
+        hintStep: 0,
+        hintPanel: state.activeHint ? IDLE_HINT_PANEL : state.hintPanel,
+      }
     }
 
     case 'TOGGLE_NOTE_MODE':
@@ -216,22 +261,51 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!hint) {
         return {
           ...state,
+          activeHint: null,
+          hintStep: 0,
           hintPanel: {
-            ...state.hintPanel,
+            badge: 'ヒントなし',
+            tone: 'default',
+            step: 0,
             hint: undefined,
-            text: 'すべてのマスが埋まっているか、現在の盤面に矛盾があります。「誤入力リセット」で誤りがないか確認してください。',
+            text: 'すべてのマスが埋まっているか、盤面に矛盾があります。「リセット」で誤りがないか確認してください。',
           },
         }
       }
       return {
         ...state,
         activeHint: hint,
-        selected: { row: hint.row, col: hint.col },
+        hintStep: 1,
         hintPanel: {
           badge: hint.badge,
           tone: hint.kind === 'correction' ? 'rose' : 'amber',
+          step: 1,
           hint,
+          text: hint.step1,
         },
+      }
+    }
+
+    case 'HINT_NEXT': {
+      if (!state.activeHint) return state
+      return {
+        ...state,
+        hintStep: 2,
+        selected: { row: state.activeHint.row, col: state.activeHint.col },
+        hintPanel: {
+          ...state.hintPanel,
+          step: 2,
+          text: state.activeHint.step2,
+        },
+      }
+    }
+
+    case 'HINT_CLOSE': {
+      return {
+        ...state,
+        activeHint: null,
+        hintStep: 0,
+        hintPanel: IDLE_HINT_PANEL,
       }
     }
 
@@ -270,10 +344,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (found === 0) {
         return {
           ...state,
+          hintStep: 0,
           hintPanel: {
             ...state.hintPanel,
             badge: '診断正常',
             tone: 'default',
+            step: 0,
             hint: undefined,
             text: '現在入力されている数字に矛盾や間違いはありません！順調です。',
           },
@@ -282,12 +358,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const history = withSnapshot(state)
       const mistakes = state.mistakes + 1
-      const isGameOver = mistakes >= MAX_MISTAKES
+      const isOverLimit = mistakes >= MAX_MISTAKES
       const hintPanel: HintPanelState = {
         badge: '誤入力リセット',
         tone: 'rose',
-        text: isGameOver
-          ? `誤って入力されていた ${found} 箇所の数字をリセットしましたが、ミス制限上限（${MAX_MISTAKES}回）に達しました。新規ゲームでリスタートしましょう！`
+        step: 0,
+        text: isOverLimit
+          ? `誤って入力されていた ${found} 箇所の数字をリセットしました（ミス: ${Math.min(mistakes, MAX_MISTAKES)}/${MAX_MISTAKES}）。リセット上限に達しましたが、このまま最後まで続けて解くことができます！`
           : `誤って入力されていた ${found} 箇所の数字をリセットしました（ミス: ${mistakes}/${MAX_MISTAKES}）。`,
       }
 
@@ -298,6 +375,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         mistakes,
         hintPanel,
         activeHint: null,
+        hintStep: 0,
       }
     }
   }

@@ -9,7 +9,7 @@ interface BoardProps {
 }
 
 export default function Board({ state, readOnly = false, onSelect, onResume }: BoardProps) {
-  const { board, initial, notes, selected, activeHint, isPaused } = state
+  const { board, initial, notes, selected, activeHint, hintStep, isPaused } = state
   const selVal = selected ? board[selected.row][selected.col] : 0
 
   return (
@@ -24,6 +24,19 @@ export default function Board({ state, readOnly = false, onSelect, onResume }: B
                 selected.col === c ||
                 (Math.floor(selected.row / 3) === Math.floor(r / 3) &&
                   Math.floor(selected.col / 3) === Math.floor(c / 3)))
+            const isHintCell = !isPaused && hintStep === 2 && activeHint?.row === r && activeHint?.col === c
+            const isHintArea =
+              !isPaused &&
+              hintStep > 0 &&
+              !!activeHint &&
+              !isHintCell &&
+              (activeHint.area.type === 'block'
+                ? Math.floor(r / 3) * 3 + Math.floor(c / 3) === activeHint.area.index
+                : activeHint.area.type === 'row'
+                ? r === activeHint.area.index
+                : activeHint.area.type === 'col'
+                ? c === activeHint.area.index
+                : r === activeHint.row && c === activeHint.col)
             return (
               <Cell
                 key={`${r}-${c}`}
@@ -35,7 +48,8 @@ export default function Board({ state, readOnly = false, onSelect, onResume }: B
                 isSelected={!isPaused && isSelected}
                 isSameValue={!isPaused && selVal !== 0 && value === selVal}
                 isRelated={!isPaused && isRelated}
-                isHint={!isPaused && activeHint?.row === r && activeHint?.col === c}
+                isHint={isHintCell}
+                isHintArea={isHintArea}
                 onSelect={(row, col) => {
                   if (!readOnly && !isPaused) onSelect(row, col)
                 }}

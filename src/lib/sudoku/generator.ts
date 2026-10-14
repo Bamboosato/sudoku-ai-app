@@ -7,7 +7,7 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: '初級',
   medium: '中級',
   hard: '上級',
-  expert: 'エキスパート',
+  expert: '達人',
 }
 
 // Beginner: 42-45 clues (remove 36-39)

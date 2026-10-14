@@ -19,6 +19,7 @@ const dummyGame: GameState = {
   history: [],
   mistakes: 0,
   activeHint: null,
+  hintStep: 0,
   hintPanel: IDLE_HINT_PANEL,
 }
 

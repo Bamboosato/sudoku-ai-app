@@ -356,7 +356,7 @@ export function gradePuzzleDifficulty(initialGrid: Grid, _solutionGrid?: Grid): 
     case 'advanced-or-trial':
     default:
       difficulty = 'expert'
-      label = 'エキスパート'
+      label = '達人'
       highestTechName = '高度技法 / 背理法 (Advanced / Trial)'
       reason = `X-Wing等の高度な論理鎖や、背理的探索（仮定法）を要する最高難度のパズルです。`
       break
