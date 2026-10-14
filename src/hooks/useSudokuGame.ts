@@ -18,7 +18,7 @@ export function useSudokuGame() {
 
   const won = useMemo(() => isSolved(state.board, state.solution), [state.board, state.solution])
   const gameOver = state.mistakes >= MAX_MISTAKES
-  const isTimerRunning = !won && !gameOver && !state.isPaused
+  const isTimerRunning = !won && !state.isPaused
   const seconds = useTimer(isTimerRunning, state.gameId, timerInitialSeconds)
   const remaining = useMemo(() => countRemaining(state.board), [state.board])
 
@@ -59,6 +59,8 @@ export function useSudokuGame() {
       undo: () => dispatch({ type: 'UNDO' }),
       toggleNoteMode: () => dispatch({ type: 'TOGGLE_NOTE_MODE' }),
       hint: () => dispatch({ type: 'HINT' }),
+      hintNext: () => dispatch({ type: 'HINT_NEXT' }),
+      hintClose: () => dispatch({ type: 'HINT_CLOSE' }),
       autoNotes: () => dispatch({ type: 'AUTO_NOTES' }),
       solveAll: () => dispatch({ type: 'SOLVE_ALL' }),
       check: () => dispatch({ type: 'CHECK' }),

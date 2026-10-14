@@ -11,6 +11,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
     for (let c = 0; c < 9; c++) {
       const val = board[r][c]
       if (val !== 0 && val !== solution[r][c]) {
+        const b = Math.floor(r / 3) * 3 + Math.floor(c / 3)
         return {
           kind: 'correction',
           type: 'Mistake Correction',
@@ -18,7 +19,10 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
           row: r,
           col: c,
           currentNum: val,
-          reason: `マス (行 ${r + 1}, 列 ${c + 1}) に入力されている「${val}」は正解と異なっています。盤面に誤りがあると正しい候補が導けないため、まずはこのマスを消去または修正してください。`,
+          area: { type: 'block', index: b, name: `第${b + 1}ブロック` },
+          step1: `第${b + 1}ブロックに入力されている数字に誤りがあるようです。`,
+          step2: `行${r + 1}、列${c + 1} の数字が正解と異なっています。一度消去して見直してみましょう。`,
+          reason: `マス (行 ${r + 1}, 列 ${c + 1}) に入力されている「${val}」は正解と異なっています。消去して見直してみましょう。`,
         }
       }
     }
@@ -31,14 +35,18 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
     for (let c = 0; c < 9; c++) {
       if (board[r][c] === 0 && candidates[r][c].size === 1) {
         const num = [...candidates[r][c]][0]
+        const b = Math.floor(r / 3) * 3 + Math.floor(c / 3)
         return {
           kind: 'placement',
           type: 'Naked Single',
-          badge: '唯一候補マス',
+          badge: '唯一の候補',
           row: r,
           col: c,
           num,
-          reason: `マス (行 ${r + 1}, 列 ${c + 1}) は、同じ行・列・3x3ブロックに1〜9の他の数字が全て揃っているため、入る数字は論理的に「${num}」のみに確定します。`,
+          area: { type: 'block', index: b, name: `第${b + 1}ブロック` },
+          step1: `第${b + 1}ブロック（行${r + 1} 付近）に注目！入る数字を1つに絞り込めるマスがあります。`,
+          step2: `行${r + 1}、列${c + 1} のマスです。周囲の数字（同じ行・列・ブロック）を消去すると、残る数字は1つだけです。`,
+          reason: `マス (行 ${r + 1}, 列 ${c + 1}) は周囲の数字により残る数字が1つに確定します。`,
         }
       }
     }
@@ -68,7 +76,10 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
           row: target.r,
           col: target.c,
           num,
-          reason: `第 ${b + 1} ブロック（3x3）において、数字「${num}」が入ることができるマスは (行 ${target.r + 1}, 列 ${target.c + 1}) の1つしかありません。他のマスは同行・列の制約で排除されています。`,
+          area: { type: 'block', index: b, name: `第${b + 1}ブロック` },
+          step1: `第${b + 1}ブロックに注目！数字「${num}」が入るマスを探してみましょう。`,
+          step2: `行${target.r + 1}、列${target.c + 1} のマスです。他の空きマスには同じ行・列の制約で「${num}」が入りません。`,
+          reason: `第 ${b + 1} ブロックで数字「${num}」が入れるのは (行 ${target.r + 1}, 列 ${target.c + 1}) のみです。`,
         }
       }
     }
@@ -89,7 +100,10 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
           row: r,
           col: cols[0],
           num,
-          reason: `行 ${r + 1} において、数字「${num}」を配置できるマスは列 ${cols[0] + 1} だけです。`,
+          area: { type: 'row', index: r, name: `行${r + 1}` },
+          step1: `行${r + 1} に注目！数字「${num}」が入るマスを探してみましょう。`,
+          step2: `行${r + 1}、列${cols[0] + 1} のマスです。この行で数字「${num}」が入れる空きマスはここしかありません。`,
+          reason: `行 ${r + 1} で「${num}」が入れるのは列 ${cols[0] + 1} だけです。`,
         }
       }
     }
@@ -110,7 +124,10 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
           row: rows[0],
           col: c,
           num,
-          reason: `列 ${c + 1} において、数字「${num}」を配置できるマスは行 ${rows[0] + 1} だけです。`,
+          area: { type: 'col', index: c, name: `列${c + 1}` },
+          step1: `列${c + 1} に注目！数字「${num}」が入るマスを探してみましょう。`,
+          step2: `行${rows[0] + 1}、列${c + 1} のマスです。この列で数字「${num}」が入れる空きマスはここしかありません。`,
+          reason: `列 ${c + 1} で「${num}」が入れるのは行 ${rows[0] + 1} だけです。`,
         }
       }
     }
@@ -121,6 +138,7 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
     for (let c = 0; c < 9; c++) {
       if (board[r][c] === 0) {
         const num = solution[r][c]
+        const b = Math.floor(r / 3) * 3 + Math.floor(c / 3)
         return {
           kind: 'placement',
           type: 'Advanced Deduction',
@@ -128,7 +146,10 @@ export function findSmartAIHint(board: Grid, solution: Grid): Hint | null {
           row: r,
           col: c,
           num,
-          reason: `高度な仮定法またはチェイン推論により、(行 ${r + 1}, 列 ${c + 1}) には「${num}」が入ることが確定します。`,
+          area: { type: 'block', index: b, name: `第${b + 1}ブロック` },
+          step1: `第${b + 1}ブロックに注目！候補を絞り込めるマスがあります。`,
+          step2: `行${r + 1}、列${c + 1} のマスです。周囲の数字から入らない候補を順に除外してみましょう。` ,
+          reason: `高度な仮定法またはチェイン推論により、(行 ${r + 1}, 列 ${c + 1}) の候補が絞り込めます。`,
         }
       }
     }

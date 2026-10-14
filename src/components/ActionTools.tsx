@@ -9,7 +9,7 @@ interface ActionToolsProps {
 
 const toolBase =
   'touch-btn min-h-[44px] flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 border border-slate-200 dark:border-slate-700 shadow-sm touch-manipulation transition select-none'
-const labelCls = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none'
+const labelCls = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none whitespace-nowrap'
 
 export default function ActionTools({
   noteMode,
@@ -23,14 +23,30 @@ export default function ActionTools({
 
   return (
     <div className="w-full grid grid-cols-4 gap-2 mt-3">
+      {/* リセット */}
+      <button
+        onClick={onCheck}
+        disabled={disabled}
+        className={`${toolBase} ${disabledCls}`}
+        title="間違った入力を消去してリセット"
+      >
+        <i className="fa-solid fa-heart text-base text-rose-500 dark:text-rose-400 mb-1"></i>
+        <span className={labelCls}>リセット</span>
+      </button>
+
+      {/* 元に戻す */}
       <button onClick={onUndo} disabled={disabled} className={`${toolBase} ${disabledCls}`}>
         <i className="fa-solid fa-arrow-rotate-left text-base text-slate-700 dark:text-slate-200 mb-1"></i>
         <span className={labelCls}>元に戻す</span>
       </button>
+
+      {/* 消去 */}
       <button onClick={onErase} disabled={disabled} className={`${toolBase} ${disabledCls}`}>
         <i className="fa-solid fa-eraser text-base text-slate-700 dark:text-slate-200 mb-1"></i>
         <span className={labelCls}>消去</span>
       </button>
+
+      {/* メモ */}
       <button
         onClick={onToggleNote}
         disabled={disabled}
@@ -45,10 +61,6 @@ export default function ActionTools({
         </span>
         <i className="fa-solid fa-pencil text-base text-slate-700 dark:text-slate-200 mb-1"></i>
         <span className={labelCls}>メモ</span>
-      </button>
-      <button onClick={onCheck} disabled={disabled} className={`${toolBase} ${disabledCls}`}>
-        <i className="fa-solid fa-shield-halved text-base text-brand-600 dark:text-brand-400 mb-1"></i>
-        <span className={labelCls}>誤入力リセット</span>
       </button>
     </div>
   )

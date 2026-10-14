@@ -7,11 +7,22 @@ export interface Position {
   col: number
 }
 
+export type HintAreaType = 'block' | 'row' | 'col' | 'cell'
+
+export interface HintArea {
+  type: HintAreaType
+  index: number
+  name: string
+}
+
 export interface BaseHint {
   type: string
   badge: string
   row: number
   col: number
+  area: HintArea
+  step1: string
+  step2: string
   reason: string
 }
 

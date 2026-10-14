@@ -5,8 +5,8 @@ interface HintPanelProps {
   panel: HintPanelState
   disabled?: boolean
   onHint: () => void
-  onAutoNotes: () => void
-  onSolveAll: () => void
+  onHintNext: () => void
+  onHintClose: () => void
 }
 
 const BADGE_TONES: Record<BadgeTone, string> = {
@@ -16,22 +16,18 @@ const BADGE_TONES: Record<BadgeTone, string> = {
 }
 
 const TECHNIQUES = [
-  { name: 'Naked Single (唯一候補)', desc: 'そのマスに入れる数字が1通りしかない状態。' },
-  { name: 'Hidden Single (隠れ1択)', desc: '行・列・ブロック内でその数字が入れるマスが1つしかない状態。' },
-  { name: 'Naked Pair (同盟ペア)', desc: '同じ2つの候補を持つマスが2つあり他を除外。' },
+  { name: '唯一の候補 (Naked Single)', desc: 'そのマスに入れる数字が1通りしかない状態。' },
+  { name: '隠れ一択 (Hidden Single)', desc: '行・列・ブロック内でその数字が入れるマスが1つしかない状態。' },
 ]
-
-const secondaryBtn =
-  'py-2 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition flex items-center justify-center gap-1'
 
 export default function HintPanel({
   panel,
   disabled = false,
   onHint,
-  onAutoNotes,
-  onSolveAll,
+  onHintNext,
+  onHintClose,
 }: HintPanelProps) {
-  const { hint } = panel
+  const { step, hint } = panel
   const disabledCls = disabled ? 'opacity-40 pointer-events-none' : ''
   const [showHelp, setShowHelp] = useState(false)
   const helpRef = useRef<HTMLDivElement>(null)
@@ -56,18 +52,19 @@ export default function HintPanel({
   }, [showHelp])
 
   return (
-    <div className="rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+    <div className="rounded-2xl p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <i className="fa-regular fa-lightbulb text-brand-500"></i> 論理ヒント
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <i className="fa-regular fa-lightbulb text-amber-500"></i> ヒント
           </h2>
           <div className="relative inline-block" ref={helpRef}>
             <button
               type="button"
               onClick={() => setShowHelp((prev) => !prev)}
               className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              title="検出する解法技法の解説を見る"
+              title="解法技法の解説を見る"
               aria-label="解法技法について"
               aria-expanded={showHelp}
             >
@@ -75,10 +72,10 @@ export default function HintPanel({
             </button>
 
             {showHelp && (
-              <div className="absolute left-0 top-full mt-2 w-72 p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-700">
+              <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-700">
                   <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <i className="fa-solid fa-graduation-cap text-brand-500"></i> 検出する解法技法
+                    <i className="fa-solid fa-graduation-cap text-brand-500"></i> 解法の手がかり
                   </span>
                   <button
                     type="button"
@@ -89,7 +86,7 @@ export default function HintPanel({
                     <i className="fa-solid fa-xmark"></i>
                   </button>
                 </div>
-                <ul className="space-y-2 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                <ul className="space-y-1.5 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
                   {TECHNIQUES.map((t) => (
                     <li key={t.name} className="flex items-start gap-1.5">
                       <span className="text-brand-500 font-bold">•</span>
@@ -103,60 +100,93 @@ export default function HintPanel({
             )}
           </div>
         </div>
-        <span
-          className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${BADGE_TONES[panel.tone]}`}
-        >
-          {panel.badge}
-        </span>
-      </div>
 
-      <div className="py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300 min-h-[90px] flex items-center justify-center text-center">
-        {hint ? (
-          hint.kind === 'placement' ? (
-            <div className="text-left space-y-1.5">
-              <p className="font-bold text-slate-800 dark:text-slate-100">
-                🎯 おすすめのマス:{' '}
-                <span className="text-brand-600 dark:text-brand-400 font-mono">
-                  行 {hint.row + 1}, 列 {hint.col + 1}
-                </span>{' '}
-                (正解: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{hint.num}</span>)
-              </p>
-              <p className="text-slate-600 dark:text-slate-300">{hint.reason}</p>
-            </div>
-          ) : (
-            <div className="text-left space-y-1.5">
-              <p className="font-bold text-rose-600 dark:text-rose-400">
-                ⚠️ 誤入力の修正:{' '}
-                <span className="font-mono">
-                  行 {hint.row + 1}, 列 {hint.col + 1}
-                </span>{' '}
-                (現在: <span className="line-through">{hint.currentNum}</span>)
-              </p>
-              <p className="text-slate-600 dark:text-slate-300">{hint.reason}</p>
-            </div>
-          )
-        ) : (
-          panel.text
+        {step > 0 && (
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded ${BADGE_TONES[panel.tone]}`}
+          >
+            {step === 1 ? 'Step 1: 着眼点' : 'Step 2: 注目マス'}
+          </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-2 pt-1">
-        <button
-          onClick={onHint}
-          disabled={disabled}
-          className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-brand-500/25 flex items-center justify-center gap-1.5 transition ${disabledCls}`}
-        >
-          <i className="fa-regular fa-lightbulb"></i> 次の一手と論理解説
-        </button>
+      {/* Message Body */}
+      <div className="py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300 min-h-[58px] flex items-center">
+        {step === 1 && hint ? (
+          <div className="flex items-start gap-2 text-left">
+            <span className="text-amber-500 text-sm mt-0.5 shrink-0">
+              <i className="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <p className="text-slate-700 dark:text-slate-200 font-medium">
+              {panel.text}
+            </p>
+          </div>
+        ) : step === 2 && hint ? (
+          <div className="flex items-start gap-2 text-left">
+            <span className="text-brand-500 text-sm mt-0.5 shrink-0">
+              <i className="fa-solid fa-crosshairs"></i>
+            </span>
+            <p className="text-slate-700 dark:text-slate-200 font-medium">
+              {panel.text}
+            </p>
+          </div>
+        ) : (
+          <p className="text-center w-full text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs">
+            {panel.text}
+          </p>
+        )}
+      </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={onAutoNotes} disabled={disabled} className={`${secondaryBtn} ${disabledCls}`}>
-            <i className="fa-solid fa-list-ol"></i> 全メモ自動入力
+      {/* Actions */}
+      <div className="pt-1">
+        {step === 0 ? (
+          <button
+            type="button"
+            onClick={onHint}
+            disabled={disabled}
+            className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-brand-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 transition ${disabledCls}`}
+          >
+            <i className="fa-regular fa-lightbulb"></i> ヒントを見る
           </button>
-          <button onClick={onSolveAll} disabled={disabled} className={`${secondaryBtn} ${disabledCls}`}>
-            <i className="fa-solid fa-wand-magic-sparkles text-amber-500"></i> 全自動で解く
-          </button>
-        </div>
+        ) : step === 1 ? (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onHintNext}
+              disabled={disabled}
+              className={`py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-sm active:scale-95 flex items-center justify-center gap-1.5 transition ${disabledCls}`}
+            >
+              <i className="fa-solid fa-magnifying-glass-plus"></i> さらに詳しく
+            </button>
+            <button
+              type="button"
+              onClick={onHintClose}
+              disabled={disabled}
+              className={`py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium text-xs active:scale-95 flex items-center justify-center gap-1 transition ${disabledCls}`}
+            >
+              閉じる
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onHint}
+              disabled={disabled}
+              className={`py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs active:scale-95 flex items-center justify-center gap-1.5 transition ${disabledCls}`}
+            >
+              <i className="fa-solid fa-rotate-right text-slate-500"></i> 別のヒント
+            </button>
+            <button
+              type="button"
+              onClick={onHintClose}
+              disabled={disabled}
+              className={`py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium text-xs active:scale-95 flex items-center justify-center gap-1 transition ${disabledCls}`}
+            >
+              閉じる
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

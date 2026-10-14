@@ -60,7 +60,7 @@ export default function ApiKeyModal({
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-          AIアドバイザー機能を利用するための Gemini API キーを設定します。キーはお使いのブラウザ（ローカル環境）にのみ保存され、外部に保存されることはありません。
+          カメラや画像から数独を読み取る（AIスキャン）ための Gemini API キーを設定します。キーはお使いの端末（ブラウザ）にのみ安全に保存され、外部サーバーに送信・保管されることはありません。
         </p>
 
         <div className="flex flex-col gap-1.5">

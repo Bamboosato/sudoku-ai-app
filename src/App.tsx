@@ -3,15 +3,14 @@ import ActionTools from './components/ActionTools'
 import ApiKeyModal from './components/ApiKeyModal'
 import Board from './components/Board'
 import DifficultyBar from './components/DifficultyBar'
-import GeminiAdvisor from './components/GeminiAdvisor'
 import Header from './components/Header'
 import HintPanel from './components/HintPanel'
 import ImportModal from './components/ImportModal'
 import MyPuzzlesModal from './components/MyPuzzlesModal'
+import NewGameModal from './components/NewGameModal'
 import Numpad from './components/Numpad'
 import VictoryModal from './components/VictoryModal'
 import { useApiKey } from './hooks/useApiKey'
-import { useGeminiAdvice } from './hooks/useGeminiAdvice'
 import { useSavedPuzzles } from './hooks/useSavedPuzzles'
 import { useSudokuGame } from './hooks/useSudokuGame'
 import { useTheme } from './hooks/useTheme'
@@ -24,12 +23,12 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isMyPuzzlesOpen, setIsMyPuzzlesOpen] = useState(false)
+  const [isNewGameOpen, setIsNewGameOpen] = useState(false)
   const [isVictoryClosed, setIsVictoryClosed] = useState(false)
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null)
 
   const { state, won, seconds, remaining, newGame, importPuzzle, actions } = useSudokuGame()
   const { savedPuzzles, savePuzzle, removePuzzle } = useSavedPuzzles()
-  const { advice, ask: askGemini } = useGeminiAdvice(state, apiKey)
   const time = formatTime(seconds)
 
   // Has player made moves in the current game
@@ -64,7 +63,7 @@ export default function App() {
       mistakes: state.mistakes,
       isCompleted: won,
     })
-    setSaveSuccessMessage('パズルを保存しました！')
+    setSaveSuccessMessage('マイパズルに追加しました！')
     setTimeout(() => setSaveSuccessMessage(null), 2500)
   }
 
@@ -78,16 +77,13 @@ export default function App() {
   return (
     <>
       <Header
-        time={time}
-        mistakes={state.mistakes}
-        maxMistakes={MAX_MISTAKES}
         hasCustomApiKey={hasCustomApiKey}
-        isPaused={state.isPaused}
         savedCount={savedPuzzles.length}
-        onTogglePause={actions.togglePause}
         onToggleTheme={toggleTheme}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSavedPuzzles={() => setIsMyPuzzlesOpen(true)}
+        onSavePuzzle={handleSaveCurrentPuzzle}
+        onOpenImport={() => setIsImportOpen(true)}
       />
 
       {saveSuccessMessage && (
@@ -101,10 +97,13 @@ export default function App() {
         <div className="flex flex-col items-center w-full max-w-[430px]">
           <DifficultyBar
             difficulty={state.difficulty}
-            onSelect={handleNewGame}
-            onNewGame={() => handleNewGame(state.difficulty)}
-            onOpenImport={() => setIsImportOpen(true)}
-            onSavePuzzle={handleSaveCurrentPuzzle}
+            isImported={state.source === 'imported'}
+            time={time}
+            isPaused={state.isPaused}
+            mistakes={state.mistakes}
+            maxMistakes={MAX_MISTAKES}
+            onTogglePause={actions.togglePause}
+            onOpenNewGame={() => setIsNewGameOpen(true)}
           />
           <Board
             state={state}
@@ -123,20 +122,13 @@ export default function App() {
           <Numpad remaining={remaining} disabled={isInteractiveDisabled} onInput={actions.input} />
         </div>
 
-        <div className="w-full lg:w-80 flex flex-col gap-3">
+        <div className="w-full max-w-[430px] lg:max-w-none lg:w-80 flex flex-col gap-3">
           <HintPanel
             panel={state.hintPanel}
             disabled={isInteractiveDisabled}
             onHint={actions.hint}
-            onAutoNotes={actions.autoNotes}
-            onSolveAll={actions.solveAll}
-          />
-          <GeminiAdvisor
-            advice={advice}
-            hasCustomApiKey={hasCustomApiKey}
-            disabled={isInteractiveDisabled}
-            onAsk={askGemini}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onHintNext={actions.hintNext}
+            onHintClose={actions.hintClose}
           />
         </div>
       </main>
@@ -164,6 +156,17 @@ export default function App() {
         onClose={() => setIsMyPuzzlesOpen(false)}
         onLoadPuzzle={actions.loadPuzzle}
         onDeletePuzzle={removePuzzle}
+      />
+
+      <NewGameModal
+        isOpen={isNewGameOpen}
+        currentDifficulty={state.difficulty}
+        hasUnsavedProgress={hasUnsavedGame}
+        onSelectDifficulty={(diff) => {
+          setIsNewGameOpen(false)
+          handleNewGame(diff)
+        }}
+        onClose={() => setIsNewGameOpen(false)}
       />
 
       {showVictoryModal && (
