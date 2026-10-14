@@ -73,7 +73,7 @@ export const IDLE_HINT_PANEL: HintPanelState = {
   badge: 'ヒント',
   tone: 'default',
   step: 0,
-  text: '行き詰まったときは「ヒントを見る」を押すと、次に注目すべきエリアを案内します。',
+  text: '次に注目すべきエリアやマスを案内します。',
 }
 
 export function createGameState(difficulty: Difficulty, gameId = 0): GameState {
