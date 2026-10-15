@@ -129,23 +129,22 @@ export default function NumberPalette({
       >
         <div className="grid grid-cols-3 grid-rows-3 gap-1.5 sm:gap-2 w-full h-full [grid-template-columns:repeat(3,minmax(0,1fr))] [grid-template-rows:repeat(3,minmax(0,1fr))]">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
-            const isExhausted = remaining[n] === 0
             const isCurrent = !noteMode && currentValue === n
             const isNoted = noteMode && notes.has(n)
+            // 現在のマスに入力されているかメモされている数字は、消去(クリア)できるように無効化しない
+            const isExhausted = remaining[n] === 0 && !isCurrent && !isNoted
 
             let buttonStyle =
               'bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold hover:bg-brand-50 dark:hover:bg-slate-700 hover:text-brand-600 dark:hover:text-brand-300 border border-slate-200 dark:border-slate-700 shadow-sm'
 
             if (isCurrent) {
-              // 既に数字が入っている場合は鮮やかなブランドグラデーション＋太字
+              // 既に数字が入っている場合は鮮やかなブランドグラデーション＋太字（消去可能）
               buttonStyle =
                 'bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-black ring-2 ring-brand-400 border-transparent shadow-md shadow-brand-500/40'
             } else if (isNoted) {
               buttonStyle =
                 'bg-brand-100 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 font-black ring-2 ring-brand-400 border-transparent'
-            }
-
-            if (isExhausted) {
+            } else if (isExhausted) {
               buttonStyle =
                 'opacity-20 pointer-events-none bg-slate-100 dark:bg-slate-800/40 border-slate-200/40 dark:border-slate-800 text-slate-400'
             }
@@ -156,7 +155,7 @@ export default function NumberPalette({
                 type="button"
                 onClick={() => handleNumberClick(n)}
                 disabled={isExhausted}
-                aria-label={`数字 ${n}`}
+                aria-label={isCurrent ? `数字 ${n} (消去)` : `数字 ${n}`}
                 className={`touch-btn w-full h-full rounded-xl flex items-center justify-center text-xl sm:text-2xl active:scale-90 touch-manipulation transition select-none ${buttonStyle}`}
               >
                 <span className="leading-none">{n}</span>
