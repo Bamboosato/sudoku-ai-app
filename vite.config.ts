@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'pwa-icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Sudoku AI - スマート数独アシスタント',
+        name: 'Sudoku AI - AIスキャン機能付き・本格思考数独',
         short_name: 'Sudoku AI',
-        description: '論理思考を育てるAI数独アシスタント。オフラインでも快適に遊べます。',
+        description: 'AIスキャン機能付き・本格思考数独。オフラインでも快適に遊べます。',
         theme_color: '#4f46e5',
         background_color: '#0f172a',
         display: 'standalone',
