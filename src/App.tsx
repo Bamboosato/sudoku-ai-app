@@ -9,6 +9,7 @@ import ImportModal from './components/ImportModal'
 import MyPuzzlesModal from './components/MyPuzzlesModal'
 import NewGameModal from './components/NewGameModal'
 import Numpad from './components/Numpad'
+import PwaUpdateToast from './components/PwaUpdateToast'
 import VictoryModal from './components/VictoryModal'
 import { useApiKey } from './hooks/useApiKey'
 import { useInputMode } from './hooks/useInputMode'
@@ -188,6 +189,9 @@ export default function App() {
           onClose={() => setIsVictoryClosed(true)}
         />
       )}
+
+      {/* PWA更新通知トースト */}
+      <PwaUpdateToast />
     </>
   )
 }
