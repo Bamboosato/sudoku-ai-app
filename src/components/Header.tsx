@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 
+import type { InputMode } from '../hooks/useInputMode'
+
 interface HeaderProps {
   hasCustomApiKey: boolean
   savedCount?: number
+  inputMode: InputMode
   onToggleTheme: () => void
+  onToggleInputMode: () => void
   onOpenSettings: () => void
   onOpenSavedPuzzles?: () => void
   onSavePuzzle?: () => void
@@ -13,7 +17,9 @@ interface HeaderProps {
 export default function Header({
   hasCustomApiKey,
   savedCount = 0,
+  inputMode,
   onToggleTheme,
+  onToggleInputMode,
   onOpenSettings,
   onOpenSavedPuzzles,
   onSavePuzzle,
@@ -156,6 +162,34 @@ export default function Header({
                 )}
 
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+
+                {/* 入力方式切替え */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggleInputMode()
+                  }}
+                  className="w-full px-2.5 py-2 rounded-xl flex items-center gap-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm shrink-0">
+                    <i className={inputMode === 'popup' ? 'fa-solid fa-table-cells text-brand-600 dark:text-brand-400' : 'fa-solid fa-calculator'}></i>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                        入力方式
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950/60 text-brand-600 dark:text-brand-300">
+                        {inputMode === 'popup' ? 'ポップアップ' : '下部テンキー'}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {inputMode === 'popup'
+                        ? '3×3パレット（タップでテンキー切替え）'
+                        : '下部テンキー（タップでパレット切替え）'}
+                    </div>
+                  </div>
+                </button>
 
                 {/* [PC & Mobile] テーマ切替え */}
                 <button

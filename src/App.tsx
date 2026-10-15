@@ -11,6 +11,7 @@ import NewGameModal from './components/NewGameModal'
 import Numpad from './components/Numpad'
 import VictoryModal from './components/VictoryModal'
 import { useApiKey } from './hooks/useApiKey'
+import { useInputMode } from './hooks/useInputMode'
 import { useSavedPuzzles } from './hooks/useSavedPuzzles'
 import { useSudokuGame } from './hooks/useSudokuGame'
 import { useTheme } from './hooks/useTheme'
@@ -19,6 +20,7 @@ import { DIFFICULTY_LABELS, MAX_MISTAKES, serializeNotes } from './lib/sudoku'
 
 export default function App() {
   const { toggle: toggleTheme } = useTheme()
+  const { inputMode, toggleInputMode } = useInputMode()
   const { apiKey, hasCustomApiKey, saveApiKey, clearApiKey } = useApiKey()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
@@ -79,7 +81,9 @@ export default function App() {
       <Header
         hasCustomApiKey={hasCustomApiKey}
         savedCount={savedPuzzles.length}
+        inputMode={inputMode}
         onToggleTheme={toggleTheme}
+        onToggleInputMode={toggleInputMode}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSavedPuzzles={() => setIsMyPuzzlesOpen(true)}
         onSavePuzzle={handleSaveCurrentPuzzle}
@@ -108,8 +112,13 @@ export default function App() {
           <Board
             state={state}
             readOnly={won}
+            inputMode={inputMode}
+            remaining={remaining}
             onSelect={(row, col) => actions.select({ row, col })}
             onResume={actions.resume}
+            onInput={actions.input}
+            onErase={actions.erase}
+            onClosePalette={() => actions.select(null)}
           />
           <ActionTools
             noteMode={state.noteMode}
@@ -119,7 +128,9 @@ export default function App() {
             onToggleNote={actions.toggleNoteMode}
             onCheck={actions.check}
           />
-          <Numpad remaining={remaining} disabled={isInteractiveDisabled} onInput={actions.input} />
+          {inputMode === 'numpad' && (
+            <Numpad remaining={remaining} disabled={isInteractiveDisabled} onInput={actions.input} />
+          )}
         </div>
 
         <div className="w-full max-w-[430px] lg:max-w-none lg:w-80 flex flex-col gap-3">

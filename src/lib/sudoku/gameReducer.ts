@@ -56,7 +56,7 @@ export type GameAction =
   | { type: 'LOAD_PUZZLE'; puzzle: LoadedPuzzlePayload }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'RESUME' }
-  | { type: 'SELECT'; pos: Position }
+  | { type: 'SELECT'; pos: Position | null }
   | { type: 'MOVE'; dRow: number; dCol: number }
   | { type: 'INPUT'; num: number }
   | { type: 'ERASE' }

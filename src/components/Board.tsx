@@ -1,16 +1,40 @@
 import type { GameState } from '../lib/sudoku'
 import Cell from './Cell'
+import NumberPalette from './NumberPalette'
+import type { InputMode } from '../hooks/useInputMode'
 
 interface BoardProps {
   state: GameState
   readOnly?: boolean
+  inputMode?: InputMode
+  remaining?: number[]
   onSelect: (row: number, col: number) => void
   onResume?: () => void
+  onInput?: (num: number) => void
+  onErase?: () => void
+  onClosePalette?: () => void
 }
 
-export default function Board({ state, readOnly = false, onSelect, onResume }: BoardProps) {
+export default function Board({
+  state,
+  readOnly = false,
+  inputMode = 'popup',
+  remaining,
+  onSelect,
+  onResume,
+  onInput,
+  onErase,
+  onClosePalette,
+}: BoardProps) {
   const { board, initial, notes, selected, activeHint, hintStep, isPaused } = state
   const selVal = selected ? board[selected.row][selected.col] : 0
+
+  const showPalette =
+    inputMode === 'popup' &&
+    !readOnly &&
+    !isPaused &&
+    selected !== null &&
+    initial[selected.row][selected.col] === 0
 
   return (
     <div className="relative w-full aspect-square bg-slate-300 dark:bg-slate-700 p-1 sm:p-1.5 rounded-lg shadow-lg shadow-slate-200 dark:shadow-none border border-slate-300 dark:border-slate-800 overflow-hidden">
@@ -58,6 +82,20 @@ export default function Board({ state, readOnly = false, onSelect, onResume }: B
           }),
         )}
       </div>
+
+      {/* 3x3 Glassmorphism Popup Number Palette */}
+      {showPalette && selected && onInput && onErase && onClosePalette && remaining && (
+        <NumberPalette
+          selected={selected}
+          currentValue={board[selected.row][selected.col]}
+          notes={notes[selected.row][selected.col]}
+          noteMode={state.noteMode}
+          remaining={remaining}
+          onInput={onInput}
+          onErase={onErase}
+          onClose={onClosePalette}
+        />
+      )}
 
       {/* Anti-cheat Frosted Glass Pause Overlay */}
       {isPaused && (
