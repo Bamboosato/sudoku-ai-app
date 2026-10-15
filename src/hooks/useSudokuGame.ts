@@ -52,7 +52,7 @@ export function useSudokuGame() {
 
   const actions = useMemo(
     () => ({
-      select: (pos: Position) => dispatch({ type: 'SELECT', pos }),
+      select: (pos: Position | null) => dispatch({ type: 'SELECT', pos }),
       move: (dRow: number, dCol: number) => dispatch({ type: 'MOVE', dRow, dCol }),
       input: (num: number) => dispatch({ type: 'INPUT', num }),
       erase: () => dispatch({ type: 'ERASE' }),
