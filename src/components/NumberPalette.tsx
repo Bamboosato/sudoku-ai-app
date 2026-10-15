@@ -40,33 +40,33 @@ function getPaletteStyle(row: number, col: number): CSSProperties {
   if (bRow === 1 && bCol === 0) {
     return { top: '50%', left: EDGE, transform: 'translateY(-50%)' }
   }
-  // ブロック5 (中央ブロック) -> 入力するマスの位置に応じて、マスが隠れない反対側にシフト
+  // ブロック5 (中央ブロック) -> 入力するマスの位置に応じて、ブロック5と極力重ならないよう外側の端寄りに退避
   if (bRow === 1 && bCol === 1) {
     const inRow = row - 3 // 0: 上, 1: 中, 2: 下
     const inCol = col - 3 // 0: 左, 1: 中, 2: 右
-    const SHIFT = '46%'
+    const OFFSET = '3%'
 
-    // 左上 (3, 3) -> 右下にシフト (左上が見える)
-    if (inRow === 0 && inCol === 0) return { top: SHIFT, left: SHIFT }
-    // 上中 (3, 4) -> 下にシフト (上が見える)
-    if (inRow === 0 && inCol === 1) return { top: SHIFT, left: '50%', transform: 'translateX(-50%)' }
-    // 右上 (3, 5) -> 左下にシフト (右上が見える)
-    if (inRow === 0 && inCol === 2) return { top: SHIFT, right: SHIFT }
+    // 左上 (3, 3) -> 右下の端へ退避 (ブロック5の左上が丸見え)
+    if (inRow === 0 && inCol === 0) return { bottom: OFFSET, right: OFFSET }
+    // 上中 (3, 4) -> 下の端へ退避 (ブロック5の上段が丸見え)
+    if (inRow === 0 && inCol === 1) return { bottom: OFFSET, left: '50%', transform: 'translateX(-50%)' }
+    // 右上 (3, 5) -> 左下の端へ退避 (ブロック5の右上が丸見え)
+    if (inRow === 0 && inCol === 2) return { bottom: OFFSET, left: OFFSET }
 
-    // 左中 (4, 3) -> 右にシフト (左が見える)
-    if (inRow === 1 && inCol === 0) return { top: '50%', left: SHIFT, transform: 'translateY(-50%)' }
-    // 右中 (4, 5) -> 左にシフト (右が見える)
-    if (inRow === 1 && inCol === 2) return { top: '50%', right: SHIFT, transform: 'translateY(-50%)' }
+    // 左中 (4, 3) -> 右の端へ退避 (ブロック5の左側が丸見え)
+    if (inRow === 1 && inCol === 0) return { top: '50%', right: OFFSET, transform: 'translateY(-50%)' }
+    // 右中 (4, 5) -> 左の端へ退避 (ブロック5の右側が丸見え)
+    if (inRow === 1 && inCol === 2) return { top: '50%', left: OFFSET, transform: 'translateY(-50%)' }
 
-    // 左下 (5, 3) -> 右上にシフト (左下が見える)
-    if (inRow === 2 && inCol === 0) return { bottom: SHIFT, left: SHIFT }
-    // 下中 (5, 4) -> 上にシフト (下が見える)
-    if (inRow === 2 && inCol === 1) return { bottom: SHIFT, left: '50%', transform: 'translateX(-50%)' }
-    // 右下 (5, 5) -> 左上にシフト (右下が見える)
-    if (inRow === 2 && inCol === 2) return { bottom: SHIFT, right: SHIFT }
+    // 左下 (5, 3) -> 右上の端へ退避 (ブロック5の左下が丸見え)
+    if (inRow === 2 && inCol === 0) return { top: OFFSET, right: OFFSET }
+    // 下中 (5, 4) -> 上の端へ退避 (ブロック5の下段が丸見え)
+    if (inRow === 2 && inCol === 1) return { top: OFFSET, left: '50%', transform: 'translateX(-50%)' }
+    // 右下 (5, 5) -> 左上の端へ退避 (ブロック5の右下が丸見え)
+    if (inRow === 2 && inCol === 2) return { top: OFFSET, left: OFFSET }
 
-    // ど真ん中 (4, 4) -> 上にシフト (マス4,4の上端44.4%より上にパレット下端43%を配置して完全に露出)
-    return { bottom: '57%', left: '50%', transform: 'translateX(-50%)' }
+    // ど真ん中 (4, 4) -> 上の端へ退避 (ブロック5の真ん中〜下段が丸見え)
+    return { top: OFFSET, left: '50%', transform: 'translateX(-50%)' }
   }
   // ブロック6 (右中) -> ブロック6のすぐ左隣 (中央寄り)
   if (bRow === 1 && bCol === 2) {
