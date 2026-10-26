@@ -131,7 +131,7 @@ export default function Header({
                         )}
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                        保存したパズルの再開・管理
+                        保存したパズルの挑戦・管理
                       </div>
                     </div>
                   </button>
@@ -155,7 +155,7 @@ export default function Header({
                         マイパズルに追加
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                        進行状況をマイパズルに記録
+                        現在の問題をマイパズルに登録
                       </div>
                     </div>
                   </button>

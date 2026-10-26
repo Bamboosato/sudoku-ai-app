@@ -15,6 +15,7 @@ import { useTimer } from './useTimer'
 export function useSudokuGame() {
   const [state, dispatch] = useReducer(gameReducer, 'easy' as Difficulty, (d) => createGameState(d))
   const [timerInitialSeconds, setTimerInitialSeconds] = useState(0)
+  const [activeSavedPuzzleId, setActiveSavedPuzzleId] = useState<string | null>(null)
 
   const won = useMemo(() => isSolved(state.board, state.solution), [state.board, state.solution])
   const gameOver = state.mistakes >= MAX_MISTAKES
@@ -28,17 +29,20 @@ export function useSudokuGame() {
 
   const newGame = useCallback((difficulty: Difficulty) => {
     setTimerInitialSeconds(0)
+    setActiveSavedPuzzleId(null)
     const { solution, initial } = generatePuzzle(difficulty)
     dispatch({ type: 'NEW_GAME', difficulty, solution, initial })
   }, [])
 
   const importPuzzle = useCallback((initial: Grid, solution: Grid, difficulty: Difficulty) => {
     setTimerInitialSeconds(0)
+    setActiveSavedPuzzleId(null)
     dispatch({ type: 'IMPORT_PUZZLE', difficulty, initial, solution })
   }, [])
 
   const loadPuzzle = useCallback((payload: LoadedPuzzlePayload) => {
     setTimerInitialSeconds(payload.elapsedSeconds)
+    setActiveSavedPuzzleId(payload.id ?? null)
     dispatch({ type: 'LOAD_PUZZLE', puzzle: payload })
   }, [])
 
@@ -89,5 +93,15 @@ export function useSudokuGame() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [hasSelection, actions])
 
-  return { state, won, gameOver, seconds, remaining, newGame, importPuzzle, actions }
+  return {
+    state,
+    won,
+    gameOver,
+    seconds,
+    remaining,
+    activeSavedPuzzleId,
+    newGame,
+    importPuzzle,
+    actions,
+  }
 }

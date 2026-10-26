@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { Grid } from '../lib/sudoku/types'
 import {
   deleteSavedPuzzle,
+  findExistingPuzzle,
   loadSavedPuzzlesFromStorage,
+  markPuzzleCompleted,
   saveOrUpdatePuzzle,
   type SavedPuzzle,
 } from '../lib/sudoku/savedPuzzles'
@@ -31,9 +34,25 @@ export function useSavedPuzzles() {
     })
   }, [])
 
+  const markCompleted = useCallback((idOrInitial: string | Grid, clearTime?: number) => {
+    setSavedPuzzles((prev) => {
+      const next = markPuzzleCompleted(prev, idOrInitial, clearTime)
+      return [...next]
+    })
+  }, [])
+
+  const checkExists = useCallback(
+    (initial: Grid): SavedPuzzle | undefined => {
+      return findExistingPuzzle(savedPuzzles, initial)
+    },
+    [savedPuzzles],
+  )
+
   return {
     savedPuzzles,
     savePuzzle,
     removePuzzle,
+    markCompleted,
+    checkExists,
   }
 }

@@ -1,3 +1,4 @@
+import { isSameGrid } from './board'
 import type { Difficulty, Grid, Notes } from './types'
 import type { PuzzleSource } from './gameReducer'
 
@@ -18,9 +19,11 @@ export interface SavedPuzzle {
   elapsedSeconds: number
   mistakes: number
   isCompleted: boolean
+  clearTime?: number
 }
 
 export interface LoadedPuzzlePayload {
+  id?: string
   difficulty: Difficulty
   source: PuzzleSource
   initial: Grid
@@ -84,6 +87,7 @@ export function validateSavedPuzzle(item: unknown): item is SavedPuzzle {
   if (typeof p.elapsedSeconds !== 'number' || p.elapsedSeconds < 0) return false
   if (typeof p.mistakes !== 'number' || p.mistakes < 0) return false
   if (typeof p.isCompleted !== 'boolean') return false
+  if (p.clearTime !== undefined && (typeof p.clearTime !== 'number' || p.clearTime < 0)) return false
 
   return true
 }
@@ -172,6 +176,45 @@ export function saveOrUpdatePuzzle(
 /** Deletes a puzzle by ID */
 export function deleteSavedPuzzle(puzzles: SavedPuzzle[], id: string): SavedPuzzle[] {
   const next = puzzles.filter((p) => p.id !== id)
+  persistSavedPuzzlesToStorage(next)
+  return next
+}
+
+/** Checks whether a puzzle with the identical initial board already exists */
+export function findExistingPuzzle(puzzles: SavedPuzzle[], initial: Grid): SavedPuzzle | undefined {
+  return puzzles.find((p) => isSameGrid(p.initial, initial))
+}
+
+/** Marks a saved puzzle as completed and updates best clear time if applicable */
+export function markPuzzleCompleted(
+  puzzles: SavedPuzzle[],
+  idOrInitial: string | Grid,
+  clearTime?: number,
+): SavedPuzzle[] {
+  const index =
+    typeof idOrInitial === 'string'
+      ? puzzles.findIndex((p) => p.id === idOrInitial)
+      : puzzles.findIndex((p) => isSameGrid(p.initial, idOrInitial))
+
+  if (index === -1) return puzzles
+
+  const existing = puzzles[index]
+  const bestTime =
+    clearTime !== undefined
+      ? existing.clearTime !== undefined
+        ? Math.min(existing.clearTime, clearTime)
+        : clearTime
+      : existing.clearTime
+
+  const updated: SavedPuzzle = {
+    ...existing,
+    isCompleted: true,
+    clearTime: bestTime,
+    updatedAt: new Date().toISOString(),
+  }
+
+  const next = [...puzzles]
+  next[index] = updated
   persistSavedPuzzlesToStorage(next)
   return next
 }
