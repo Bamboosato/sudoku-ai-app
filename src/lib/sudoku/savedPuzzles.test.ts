@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   deleteSavedPuzzle,
   deserializeNotes,
+  findExistingPuzzle,
   loadSavedPuzzlesFromStorage,
+  markPuzzleCompleted,
   MAX_SAVED_PUZZLES,
   SAVED_PUZZLES_STORAGE_KEY,
   saveOrUpdatePuzzle,
@@ -69,18 +71,21 @@ describe('savedPuzzles storage and serialization', () => {
       elapsedSeconds: 83,
       mistakes: 1,
       isCompleted: false,
+      clearTime: 120,
     }
 
     expect(validateSavedPuzzle(validPuzzle)).toBe(true)
 
     // Invalid difficulty
-    expect(validateSavedPuzzle({ ...validPuzzle, difficulty: 'impossible' })).toBe(false)
+    expect(validateSavedPuzzle({ ...validPuzzle, difficulty: 'impossible' as any })).toBe(false)
     // Missing fields
     expect(validateSavedPuzzle({ ...validPuzzle, id: '' })).toBe(false)
     // Invalid board shape
-    expect(validateSavedPuzzle({ ...validPuzzle, initial: [[1]] })).toBe(false)
+    expect(validateSavedPuzzle({ ...validPuzzle, initial: [[1]] as any })).toBe(false)
     // Non-number elapsed seconds
     expect(validateSavedPuzzle({ ...validPuzzle, elapsedSeconds: -10 })).toBe(false)
+    // Negative clearTime
+    expect(validateSavedPuzzle({ ...validPuzzle, clearTime: -5 })).toBe(false)
   })
 
   it('safely handles corrupted localStorage content without throwing', () => {
@@ -103,7 +108,7 @@ describe('savedPuzzles storage and serialization', () => {
       solution: dummyGrid,
       currentBoard: dummyGrid,
       currentNotes: dummyNotes,
-      elapsedSeconds: 30,
+      elapsedSeconds: 0,
       mistakes: 0,
       isCompleted: false,
     })
@@ -132,6 +137,67 @@ describe('savedPuzzles storage and serialization', () => {
     // Delete puzzle
     puzzles = deleteSavedPuzzle(puzzles, puzzleId)
     expect(puzzles.length).toBe(0)
+  })
+
+  it('correctly detects duplicate puzzles with findExistingPuzzle', () => {
+    let puzzles: SavedPuzzle[] = []
+    const gridA = createEmptyGrid()
+    gridA[0][0] = 5
+    const gridB = createEmptyGrid()
+    gridB[0][0] = 6
+
+    puzzles = saveOrUpdatePuzzle(puzzles, {
+      title: 'パズル A',
+      difficulty: 'medium',
+      source: 'generated',
+      initial: gridA,
+      solution: gridA,
+      currentBoard: gridA,
+      currentNotes: [],
+      elapsedSeconds: 0,
+      mistakes: 0,
+      isCompleted: false,
+    })
+
+    expect(findExistingPuzzle(puzzles, gridA)).toBeDefined()
+    expect(findExistingPuzzle(puzzles, gridA)?.title).toBe('パズル A')
+    expect(findExistingPuzzle(puzzles, gridB)).toBeUndefined()
+  })
+
+  it('marks puzzle completed and updates best clear time', () => {
+    let puzzles: SavedPuzzle[] = []
+    const grid = createEmptyGrid()
+    grid[1][1] = 9
+
+    puzzles = saveOrUpdatePuzzle(puzzles, {
+      title: '初級',
+      difficulty: 'easy',
+      source: 'generated',
+      initial: grid,
+      solution: grid,
+      currentBoard: grid,
+      currentNotes: [],
+      elapsedSeconds: 0,
+      mistakes: 0,
+      isCompleted: false,
+    })
+
+    const puzzleId = puzzles[0].id
+    expect(puzzles[0].isCompleted).toBe(false)
+    expect(puzzles[0].clearTime).toBeUndefined()
+
+    // First completion with 120s
+    puzzles = markPuzzleCompleted(puzzles, puzzleId, 120)
+    expect(puzzles[0].isCompleted).toBe(true)
+    expect(puzzles[0].clearTime).toBe(120)
+
+    // Faster completion (95s) updates best time
+    puzzles = markPuzzleCompleted(puzzles, grid, 95)
+    expect(puzzles[0].clearTime).toBe(95)
+
+    // Slower completion (150s) keeps best time 95s
+    puzzles = markPuzzleCompleted(puzzles, puzzleId, 150)
+    expect(puzzles[0].clearTime).toBe(95)
   })
 
   it('enforces maximum 50 capacity and evicts oldest items', () => {

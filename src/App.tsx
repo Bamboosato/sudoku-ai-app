@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ActionTools from './components/ActionTools'
 import ApiKeyModal from './components/ApiKeyModal'
 import Board from './components/Board'
@@ -17,7 +17,12 @@ import { useSavedPuzzles } from './hooks/useSavedPuzzles'
 import { useSudokuGame } from './hooks/useSudokuGame'
 import { useTheme } from './hooks/useTheme'
 import { formatTime } from './hooks/useTimer'
-import { DIFFICULTY_LABELS, MAX_MISTAKES, serializeNotes } from './lib/sudoku'
+import { DIFFICULTY_LABELS, MAX_MISTAKES } from './lib/sudoku'
+
+interface ToastState {
+  text: string
+  type: 'success' | 'info'
+}
 
 export default function App() {
   const { toggle: toggleTheme } = useTheme()
@@ -28,11 +33,23 @@ export default function App() {
   const [isMyPuzzlesOpen, setIsMyPuzzlesOpen] = useState(false)
   const [isNewGameOpen, setIsNewGameOpen] = useState(false)
   const [isVictoryClosed, setIsVictoryClosed] = useState(false)
-  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
 
-  const { state, won, seconds, remaining, newGame, importPuzzle, actions } = useSudokuGame()
-  const { savedPuzzles, savePuzzle, removePuzzle } = useSavedPuzzles()
+  const { state, won, seconds, remaining, activeSavedPuzzleId, newGame, importPuzzle, actions } =
+    useSudokuGame()
+  const { savedPuzzles, savePuzzle, removePuzzle, markCompleted, checkExists } = useSavedPuzzles()
   const time = formatTime(seconds)
+
+  // Track victory to automatically update saved puzzle status once per win
+  const wonProcessedRef = useRef(false)
+  useEffect(() => {
+    if (won && !wonProcessedRef.current) {
+      wonProcessedRef.current = true
+      markCompleted(activeSavedPuzzleId || state.initial, seconds)
+    } else if (!won) {
+      wonProcessedRef.current = false
+    }
+  }, [won, activeSavedPuzzleId, state.initial, seconds, markCompleted])
 
   // Has player made moves in the current game
   const hasUnsavedGame = useMemo(() => {
@@ -52,22 +69,40 @@ export default function App() {
   }
 
   const handleSaveCurrentPuzzle = () => {
-    const diffLabel = DIFFICULTY_LABELS[state.difficulty]
-    const title = `${diffLabel} (${formatTime(seconds)})`
+    // Check if identical puzzle already exists in My Puzzles
+    const existing = checkExists(state.initial)
+    if (existing) {
+      setToast({
+        text: 'このパズルは既にマイパズルに登録されています',
+        type: 'info',
+      })
+      setTimeout(() => setToast(null), 2500)
+      return
+    }
+
+    const diffLabel = state.source === 'imported' ? '取り込み' : DIFFICULTY_LABELS[state.difficulty]
+    const dateStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
+    const title = `${diffLabel} (${dateStr})`
+
     savePuzzle({
       title,
       difficulty: state.difficulty,
       source: state.source,
       initial: state.initial,
       solution: state.solution,
-      currentBoard: state.board,
-      currentNotes: serializeNotes(state.notes),
-      elapsedSeconds: seconds,
-      mistakes: state.mistakes,
+      currentBoard: state.initial.map((row) => [...row]),
+      currentNotes: [],
+      elapsedSeconds: 0,
+      mistakes: 0,
       isCompleted: won,
+      clearTime: won ? seconds : undefined,
     })
-    setSaveSuccessMessage('マイパズルに追加しました！')
-    setTimeout(() => setSaveSuccessMessage(null), 2500)
+
+    setToast({
+      text: 'マイパズルに登録しました！',
+      type: 'success',
+    })
+    setTimeout(() => setToast(null), 2500)
   }
 
   const showVictoryModal = won && !isVictoryClosed
@@ -91,10 +126,18 @@ export default function App() {
         onOpenImport={() => setIsImportOpen(true)}
       />
 
-      {saveSuccessMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 py-2 px-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2">
-          <i className="fa-solid fa-circle-check"></i>
-          {saveSuccessMessage}
+      {toast && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 py-2 px-4 rounded-2xl text-white text-xs font-bold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-emerald-600' : 'bg-slate-700 dark:bg-slate-800'
+          }`}
+        >
+          <i
+            className={`fa-solid ${
+              toast.type === 'success' ? 'fa-circle-check text-emerald-200' : 'fa-circle-info text-sky-300'
+            }`}
+          ></i>
+          {toast.text}
         </div>
       )}
 

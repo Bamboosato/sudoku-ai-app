@@ -81,3 +81,17 @@ export function countMistakes(board: Grid, solution: Grid): number {
   }
   return n
 }
+
+/** Returns true if two grids have identical values in all cells */
+export function isSameGrid(a: Grid, b: Grid): boolean {
+  if (!a || !b || a.length !== 9 || b.length !== 9) return false
+  for (let r = 0; r < 9; r++) {
+    const rowA = a[r]
+    const rowB = b[r]
+    if (!rowA || !rowB || rowA.length !== 9 || rowB.length !== 9) return false
+    for (let c = 0; c < 9; c++) {
+      if (rowA[c] !== rowB[c]) return false
+    }
+  }
+  return true
+}
