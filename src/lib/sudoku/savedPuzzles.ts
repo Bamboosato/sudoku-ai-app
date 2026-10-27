@@ -1,4 +1,4 @@
-import { isSameGrid } from './board'
+import { createEmptyNotes, isSameGrid } from './board'
 import type { Difficulty, Grid, Notes } from './types'
 import type { PuzzleSource } from './gameReducer'
 
@@ -100,7 +100,15 @@ export function loadSavedPuzzlesFromStorage(): SavedPuzzle[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(validateSavedPuzzle)
+    // Older initial-state saves used [] for notes. Repair only that known shape,
+    // then apply the usual validation; reading never rewrites localStorage.
+    return parsed.map((item: unknown) => {
+      if (item && typeof item === 'object' && 'currentNotes' in item &&
+          Array.isArray(item.currentNotes) && item.currentNotes.length === 0) {
+        return { ...item, currentNotes: serializeNotes(createEmptyNotes()) }
+      }
+      return item
+    }).filter(validateSavedPuzzle)
   } catch {
     return []
   }
