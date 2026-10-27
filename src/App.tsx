@@ -18,6 +18,8 @@ import { useSudokuGame } from './hooks/useSudokuGame'
 import { useTheme } from './hooks/useTheme'
 import { formatTime } from './hooks/useTimer'
 import { DIFFICULTY_LABELS, MAX_MISTAKES } from './lib/sudoku'
+import { createEmptyNotes } from './lib/sudoku/board'
+import { serializeNotes } from './lib/sudoku/savedPuzzles'
 
 interface ToastState {
   text: string
@@ -91,7 +93,7 @@ export default function App() {
       initial: state.initial,
       solution: state.solution,
       currentBoard: state.initial.map((row) => [...row]),
-      currentNotes: [],
+      currentNotes: serializeNotes(createEmptyNotes()),
       elapsedSeconds: 0,
       mistakes: 0,
       isCompleted: won,

@@ -12,7 +12,7 @@ import {
   validateSavedPuzzle,
   type SavedPuzzle,
 } from './savedPuzzles'
-import { createEmptyGrid } from './board'
+import { createEmptyGrid, createEmptyNotes } from './board'
 
 // Polyfill in-memory localStorage for Node.js test environment
 const memoryStore = new Map<string, string>()
@@ -92,6 +92,76 @@ describe('savedPuzzles storage and serialization', () => {
     localStorage.setItem(SAVED_PUZZLES_STORAGE_KEY, 'invalid json {!')
     const loaded = loadSavedPuzzlesFromStorage()
     expect(loaded).toEqual([])
+  })
+
+  it.each([false, true])('reloads legacy initial saves with empty notes (completed: %s)', (isCompleted) => {
+    const initial = createEmptyGrid()
+    initial[0][0] = 5
+    const [saved] = saveOrUpdatePuzzle([], {
+      title: 'Legacy initial puzzle',
+      difficulty: 'easy',
+      source: 'generated',
+      initial,
+      solution: initial,
+      currentBoard: initial.map((row) => [...row]),
+      currentNotes: [], // Written by App before the persistence contract fix.
+      elapsedSeconds: 0,
+      mistakes: 0,
+      isCompleted,
+      clearTime: isCompleted ? 95 : undefined,
+    })
+    const rawBeforeLoad = localStorage.getItem(SAVED_PUZZLES_STORAGE_KEY)
+
+    const reloaded = loadSavedPuzzlesFromStorage()
+    expect(reloaded).toHaveLength(1)
+    expect(reloaded[0]).toEqual({ ...saved, currentNotes: serializeNotes(createEmptyNotes()) })
+    expect(validateSavedPuzzle(reloaded[0])).toBe(true)
+    expect(findExistingPuzzle(reloaded, initial)?.id).toBe(saved.id)
+    expect(deserializeNotes(reloaded[0].currentNotes)).toEqual(createEmptyNotes())
+    expect(localStorage.getItem(SAVED_PUZZLES_STORAGE_KEY)).toBe(rawBeforeLoad)
+  })
+
+  it('preserves existing valid progress and notes alongside legacy and invalid records', () => {
+    const grid = createEmptyGrid()
+    const notes = createEmptyNotes()
+    notes[2][3].add(4).add(8)
+    const [existing] = saveOrUpdatePuzzle([], {
+      title: 'Existing progress',
+      difficulty: 'hard',
+      source: 'imported',
+      initial: grid,
+      solution: grid,
+      currentBoard: grid,
+      currentNotes: serializeNotes(notes),
+      elapsedSeconds: 83,
+      mistakes: 1,
+      isCompleted: true,
+      clearTime: 120,
+    })
+    const legacy = { ...existing, id: 'legacy', currentNotes: [] }
+    const invalid = [
+      null,
+      { ...legacy, id: '' },
+      { ...legacy, initial: [[1]] },
+      { ...legacy, isCompleted: 'true' },
+      { ...legacy, currentNotes: null },
+      { ...legacy, currentNotes: [[]] },
+      { ...legacy, currentNotes: '[]' },
+    ]
+    const raw = JSON.stringify([existing, ...invalid, legacy])
+    localStorage.setItem(SAVED_PUZZLES_STORAGE_KEY, raw)
+
+    expect(loadSavedPuzzlesFromStorage()).toEqual([
+      existing,
+      { ...legacy, currentNotes: serializeNotes(createEmptyNotes()) },
+    ])
+    expect(localStorage.getItem(SAVED_PUZZLES_STORAGE_KEY)).toBe(raw)
+  })
+
+  it.each(['null', '{}', '42'])('ignores non-list storage content: %s', (raw) => {
+    localStorage.setItem(SAVED_PUZZLES_STORAGE_KEY, raw)
+    expect(loadSavedPuzzlesFromStorage()).toEqual([])
+    expect(localStorage.getItem(SAVED_PUZZLES_STORAGE_KEY)).toBe(raw)
   })
 
   it('saves and updates puzzles in localStorage', () => {
